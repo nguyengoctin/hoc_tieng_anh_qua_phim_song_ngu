@@ -142,7 +142,7 @@ video {
   text-align: center;
   pointer-events: auto;
   z-index: 5;
-  background: rgba(10, 10, 10, 0.8);
+  background: rgba(10, 10, 10, 0.55);
   padding: 16px 36px;
   border-radius: 14px;
   backdrop-filter: blur(12px);
