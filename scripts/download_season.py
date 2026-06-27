@@ -78,6 +78,17 @@ SHOW_SEASON_START_URLS = {
         3: "https://toomva.com/video/silicon-valley-season-3=16762",
         4: "https://toomva.com/video/silicon-valley-season-4=16773",
         5: "https://toomva.com/video/silicon-valley-season-5-=16783"
+    },
+    "the_office": {
+        1: "https://toomva.com/video/the-office-season-1-chuyen-van-phong-phan-1=5174",
+        2: "https://toomva.com/video/the-office-season-2-chuyen-van-phong-phan-2=16120",
+        3: "https://toomva.com/video/the-office-season-3-chuyen-van-phong-phan-3=15985",
+        4: "https://toomva.com/video/the-office-season-4-chuyen-van-phong-phan-4=16026",
+        5: "https://toomva.com/video/the-office-season-5-chuyen-van-phong-phan-5=19178",
+        6: "https://toomva.com/video/the-office-season-6-chuyen-van-phong-phan-6=19205",
+        7: "https://toomva.com/video/the-office-season-7-chuyen-van-phong-phan-7=19229",
+        8: "https://toomva.com/video/the-office-season-8-chuyen-van-phong-phan-8=19297",
+        9: "https://toomva.com/video/the-office-season-9-chuyen-van-phong-phan-9=19321"
     }
 }
 
@@ -122,17 +133,31 @@ def extract_episode_urls(html):
     return result
 
 def get_video_url(html):
-    """Finds first mp4 URL in the HTML page source."""
+    """Finds first mp4 or m3u8 URL in the HTML page source."""
     if not html:
         return None
-    urls = re.findall(r'https?://[^\s\'"]+?\.mp4', html)
+    urls = re.findall(r'https?://[^\s\'"]+?\.(?:mp4|m3u8)', html)
     for url in urls:
-        if 'toomva' in url or '/friends/' in url or '/siliconvalley/' in url:
+        if 'toomva' in url or '/friends/' in url or '/siliconvalley/' in url or 'The-Office' in url:
             return url
     return None
 
 def download_video(video_url, output_path):
-    """Downloads a video file with progress feedback."""
+    """Downloads a video file (supporting mp4 direct download and m3u8 HLS streams via ffmpeg)."""
+    if '.m3u8' in video_url:
+        print(f"Downloading HLS stream using ffmpeg: {video_url}")
+        import subprocess
+        # ffmpeg -y -i "url" -c copy output_path
+        cmd = ['ffmpeg', '-y', '-i', video_url, '-c', 'copy', '-bsf:a', 'aac_adtstoasc', output_path]
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            return True
+        except Exception as e:
+            print(f"\nffmpeg download failed: {e}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
