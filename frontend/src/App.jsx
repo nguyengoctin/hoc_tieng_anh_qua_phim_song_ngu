@@ -867,10 +867,7 @@ function App() {
           {/* Study Controls Bar (Compact horizontal bar) */}
           <div className="study-controls-bar" onClick={(e) => e.stopPropagation()}>
             <div className="study-bar-left">
-              <span className="study-bar-title">🎓 CHẾ ĐỘ HỌC TẬP</span>
-              <span className="study-bar-tip" style={{ visibility: blankLevel > 0 ? 'visible' : 'hidden' }}>
-                Mẹo: Nhấn <strong>[Tab]</strong> để mở khóa từng từ, click từ ẩn để mở nhanh.
-              </span>
+              <span className="study-bar-title">🎓 Học tập</span>
             </div>
             
             <div className="study-bar-group">
@@ -883,23 +880,23 @@ function App() {
                     onChange={() => currentEpisode && toggleWatched(currentEpisode.id)}
                     className="watched-checkbox"
                   />
-                  <span className="setting-label">Đã hoàn thành tập</span>
+                  <span className="setting-label">Đã xem</span>
                 </label>
               </div>
 
               {/* Shadowing Delay Selector */}
               <div className="shadowing-delay-selector">
-                <span className="setting-label">Dừng tự nói (Shadowing):</span>
+                <span className="setting-label">Dừng tự nói:</span>
                 <select 
                   value={shadowingDelay} 
                   onChange={(e) => setShadowingDelay(parseInt(e.target.value))}
                   className="select-resume-delay"
                 >
-                  <option value="-99">Tắt (Phát liên tục)</option>
-                  <option value="999">Dừng hẳn (Thủ công)</option>
+                  <option value="-99">Tắt</option>
+                  <option value="999">Dừng hẳn</option>
                   <option value="-2">Độ dài câu - 2s</option>
                   <option value="-1">Độ dài câu - 1s</option>
-                  <option value="0">Bằng độ dài câu (+0s)</option>
+                  <option value="0">Bằng độ dài câu</option>
                   <option value="1">Độ dài câu + 1s</option>
                   <option value="3">Độ dài câu + 3s</option>
                   <option value="5">Độ dài câu + 5s</option>
@@ -910,7 +907,7 @@ function App() {
 
               {/* Blanking Level */}
               <div className="blank-level-selectors">
-                <span className="setting-label">Luyện nghe đục lỗ:</span>
+                <span className="setting-label">Đục lỗ:</span>
                 <button className={`btn-study-mode ${blankLevel === 0 ? 'active' : ''}`} onClick={() => { setBlankLevel(0); setRevealAll(false); }}>Tắt</button>
                 <button className={`btn-study-mode ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.3); setRevealAll(false); }}>30%</button>
                 <button className={`btn-study-mode ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.5); setRevealAll(false); }}>50%</button>
@@ -937,19 +934,19 @@ function App() {
               className={`tab-btn ${sidebarTab === 'script' ? 'active' : ''}`}
               onClick={() => setSidebarTab('script')}
             >
-              📖 Kịch Bản
+              📖 Kịch bản
             </button>
             <button 
               className={`tab-btn ${sidebarTab === 'vocab' ? 'active' : ''}`}
               onClick={() => setSidebarTab('vocab')}
             >
-              ⭐ Từ Vựng ({savedVocab.length})
+              ⭐ Từ vựng ({savedVocab.length})
             </button>
             <button 
               className={`tab-btn ${sidebarTab === 'sentences' ? 'active' : ''}`}
               onClick={() => setSidebarTab('sentences')}
             >
-              🔖 Câu Đã Lưu ({savedSentences.length})
+              🔖 Đã lưu ({savedSentences.length})
             </button>
           </div>
 

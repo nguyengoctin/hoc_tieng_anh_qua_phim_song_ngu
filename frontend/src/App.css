@@ -339,12 +339,13 @@ video {
   background: none;
   border: none;
   color: #8a8d98;
-  padding: 18px 0;
+  padding: 12px 2px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border-bottom: 2px solid transparent;
-  font-size: 14px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .tab-btn.active {
