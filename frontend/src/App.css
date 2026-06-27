@@ -137,7 +137,7 @@ video {
   bottom: 95px;
   left: 50%;
   transform: translateX(-50%);
-  width: fit-content;
+  width: max-content;
   max-width: 95%;
   text-align: center;
   pointer-events: auto;
