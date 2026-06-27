@@ -37,7 +37,6 @@ function App() {
   const [revealBlanked, setRevealBlanked] = useState(false);
   const [revealAll, setRevealAll] = useState(false);
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
-  const [autoResumeDelay, setAutoResumeDelay] = useState(0); // 0 (manual), 3, 5, 8
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
   const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
     const saved = localStorage.getItem('watched_episodes');
@@ -361,15 +360,6 @@ function App() {
         setIsPlaying(false);
         lastSubIndexRef.current = currentIdx;
 
-        // Auto-Resume Timer handling
-        if (autoResumeDelay > 0) {
-          if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-          resumeTimeoutRef.current = setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.play().then(() => setIsPlaying(true));
-            }
-          }, autoResumeDelay * 1000);
-        }
       }
     } else {
       lastSubIndexRef.current = -1;
@@ -777,21 +767,7 @@ function App() {
                 </select>
               </div>
 
-              {/* Auto-Resume Delay Selector */}
-              <div className="auto-resume-selector">
-                <span className="setting-label">Tự động phát tiếp:</span>
-                <select 
-                  value={autoResumeDelay} 
-                  onChange={(e) => setAutoResumeDelay(parseInt(e.target.value))}
-                  className="select-resume-delay"
-                >
-                  <option value="0">Dừng hẳn (Thủ công)</option>
-                  <option value="3">Sau 3 giây</option>
-                  <option value="5">Sau 5 giây</option>
-                  <option value="8">Sau 8 giây</option>
-                </select>
-              </div>
-              
+
               {/* Blanking Level */}
               <div className="blank-level-selectors">
                 <span className="setting-label">Luyện nghe đục lỗ:</span>
