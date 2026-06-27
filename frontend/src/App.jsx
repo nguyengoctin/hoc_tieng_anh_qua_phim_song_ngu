@@ -14,7 +14,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [autoPause, setAutoPause] = useState(false);
+
   
   // Custom Controls and UI Settings
   const [showSidebar, setShowSidebar] = useState(false);
@@ -337,11 +337,16 @@ function App() {
       setActiveSidebarSub(current);
       const currentIdx = subtitles.indexOf(current);
 
-      // Shadowing auto-pause: when segment duration + extra delay is active
+      // Shadowing / Auto-pause: when active
       if (shadowingDelay !== -99 && lastSubIndexRef.current !== currentIdx && time >= current.end - 0.15) {
         video.pause();
         setIsPlaying(false);
         lastSubIndexRef.current = currentIdx;
+
+        // If shadowingDelay is 999, we pause indefinitely (manual play required)
+        if (shadowingDelay === 999) {
+          return;
+        }
 
         const segmentDuration = current.end - current.start;
         const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
@@ -353,13 +358,6 @@ function App() {
           }
         }, totalPauseSeconds * 1000);
         return;
-      }
-
-      if (autoPause && lastSubIndexRef.current !== currentIdx && time >= current.end - 0.15) {
-        video.pause();
-        setIsPlaying(false);
-        lastSubIndexRef.current = currentIdx;
-
       }
     } else {
       lastSubIndexRef.current = -1;
@@ -706,13 +704,6 @@ function App() {
                   🇻🇳 VIE
                 </button>
 
-                <button 
-                  className={`btn-ctrl ${autoPause ? 'active' : ''}`}
-                  onClick={() => setAutoPause(!autoPause)}
-                  title="Auto-Pause after every subtitle segment"
-                >
-                  ⏱ Auto-Pause: {autoPause ? 'BẬT' : 'TẰT'}
-                </button>
 
                 <button 
                   className={`btn-ctrl ${showSidebar ? 'active' : ''}`}
@@ -756,7 +747,8 @@ function App() {
                   onChange={(e) => setShadowingDelay(parseInt(e.target.value))}
                   className="select-resume-delay"
                 >
-                  <option value="-99">Tắt</option>
+                  <option value="-99">Tắt (Phát liên tục)</option>
+                  <option value="999">Dừng hẳn (Thủ công)</option>
                   <option value="-2">Độ dài câu - 2s</option>
                   <option value="-1">Độ dài câu - 1s</option>
                   <option value="0">Bằng độ dài câu (+0s)</option>
