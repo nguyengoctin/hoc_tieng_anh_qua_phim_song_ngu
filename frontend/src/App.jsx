@@ -43,7 +43,48 @@ function App() {
     const saved = localStorage.getItem('watched_episodes');
     return saved ? JSON.parse(saved) : [];
   });
+  const [savedSentences, setSavedSentences] = useState(() => {
+    const saved = localStorage.getItem('saved_sentences');
+    return saved ? JSON.parse(saved) : [];
+  });
 
+  const saveSentence = (sub) => {
+    if (!sub || !currentEpisode) return;
+    const newSentence = {
+      id: `${currentEpisode.id}_${sub.start}`,
+      episodeId: currentEpisode.id,
+      episodeTitle: currentEpisode.title,
+      english: sub.english,
+      vietnamese: sub.vietnamese,
+      start: sub.start
+    };
+    setSavedSentences(prev => {
+      if (prev.some(item => item.id === newSentence.id)) return prev;
+      const updated = [...prev, newSentence];
+      localStorage.setItem('saved_sentences', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeSentence = (id) => {
+    setSavedSentences(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      localStorage.setItem('saved_sentences', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const playSavedSentence = (item) => {
+    if (currentEpisode && currentEpisode.id !== item.episodeId) {
+      handleEpisodeChange(item.episodeId);
+      localStorage.setItem('pending_seek_time', item.start.toString());
+    } else if (videoRef.current) {
+      videoRef.current.currentTime = item.start;
+      if (!isPlaying) {
+        videoRef.current.play().then(() => setIsPlaying(true));
+      }
+    }
+  };
   // Subtitle Hotkeys Handler
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -651,6 +692,14 @@ function App() {
                 onLoadedMetadata={() => {
                   if (videoRef.current) {
                     videoRef.current.playbackRate = playbackSpeed;
+                    const pendingSeek = localStorage.getItem('pending_seek_time');
+                    if (pendingSeek) {
+                      const seekTime = parseFloat(pendingSeek);
+                      videoRef.current.currentTime = seekTime;
+                      localStorage.removeItem('pending_seek_time');
+                      videoRef.current.play().then(() => setIsPlaying(true));
+                      return;
+                    }
                     const savedPositions = localStorage.getItem('resume_positions');
                     if (savedPositions) {
                       const positions = JSON.parse(savedPositions);
@@ -896,29 +945,54 @@ function App() {
             >
               ⭐ Từ Vựng ({savedVocab.length})
             </button>
+            <button 
+              className={`tab-btn ${sidebarTab === 'sentences' ? 'active' : ''}`}
+              onClick={() => setSidebarTab('sentences')}
+            >
+              🔖 Câu Đã Lưu ({savedSentences.length})
+            </button>
           </div>
 
           <div className="sidebar-content">
             {sidebarTab === 'script' ? (
               <div className="transcript-list">
-                {subtitles.map((sub, index) => (
-                  <div 
-                    key={index} 
-                    className={`transcript-item ${activeSidebarSub === sub ? 'active' : ''}`}
-                    onClick={() => {
-                      if (videoRef.current) {
-                        videoRef.current.currentTime = sub.start;
-                        videoRef.current.play().then(() => setIsPlaying(true));
-                      }
-                    }}
-                  >
-                    <span className="transcript-time">{formatTime(sub.start)}</span>
-                    <p className="transcript-en">{sub.english}</p>
-                    <p className="transcript-vi">{sub.vietnamese}</p>
-                  </div>
-                ))}
+                {subtitles.map((sub, index) => {
+                  const isSaved = currentEpisode && savedSentences.some(item => item.id === `${currentEpisode.id}_${sub.start}`);
+                  return (
+                    <div 
+                      key={index} 
+                      className={`transcript-item ${activeSidebarSub === sub ? 'active' : ''}`}
+                      onClick={() => {
+                        if (videoRef.current) {
+                          videoRef.current.currentTime = sub.start;
+                          videoRef.current.play().then(() => setIsPlaying(true));
+                        }
+                      }}
+                    >
+                      <div className="transcript-header-bar">
+                        <span className="transcript-time">{formatTime(sub.start)}</span>
+                        <button 
+                          className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isSaved) {
+                              removeSentence(`${currentEpisode.id}_${sub.start}`);
+                            } else {
+                              saveSentence(sub);
+                            }
+                          }}
+                          title={isSaved ? "Xóa lưu câu thoại" : "Lưu câu thoại"}
+                        >
+                          {isSaved ? '★' : '☆'}
+                        </button>
+                      </div>
+                      <p className="transcript-en">{sub.english}</p>
+                      <p className="transcript-vi">{sub.vietnamese}</p>
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
+            ) : sidebarTab === 'vocab' ? (
               <div className="vocab-list">
                 {savedVocab.length > 0 && (
                   <button className="btn-clear-all-vocab" onClick={clearAllVocab}>
@@ -935,6 +1009,40 @@ function App() {
                     <p className="vocab-translation">{item.translation}</p>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="saved-sentences-list">
+                {savedSentences.length === 0 ? (
+                  <p className="empty-message">Chưa có câu thoại nào được lưu.</p>
+                ) : (
+                  savedSentences.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className="saved-sentence-item"
+                      onClick={() => playSavedSentence(item)}
+                      title="Nhấn để nhảy đến cảnh phim của câu này"
+                    >
+                      <div className="saved-sentence-header">
+                        <span className="saved-sentence-episode">{item.episodeTitle}</span>
+                        <div className="saved-sentence-actions">
+                          <span className="saved-sentence-time">⏱ {formatTime(item.start)}</span>
+                          <button 
+                            className="btn-remove-saved-sentence" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSentence(item.id);
+                            }}
+                            title="Xóa câu thoại"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                      <p className="saved-sentence-en">{item.english}</p>
+                      <p className="saved-sentence-vi">{item.vietnamese}</p>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
