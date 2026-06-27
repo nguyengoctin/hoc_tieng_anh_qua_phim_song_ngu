@@ -804,5 +804,56 @@ video {
   white-space: nowrap;
 }
 
+/* Watched checkbox toggle style */
+.watched-toggle-container {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.watched-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.watched-toggle-label:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.watched-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #2ed573;
+  cursor: pointer;
+}
+
+/* Clear all vocab button style */
+.btn-clear-all-vocab {
+  width: 100%;
+  padding: 8px;
+  background: rgba(255, 71, 87, 0.1);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-all-vocab:hover {
+  background: rgba(255, 71, 87, 0.2);
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
 
 

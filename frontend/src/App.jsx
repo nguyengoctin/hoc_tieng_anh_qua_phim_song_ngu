@@ -39,6 +39,28 @@ function App() {
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
   const [autoResumeDelay, setAutoResumeDelay] = useState(0); // 0 (manual), 3, 5, 8
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
+  const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
+    const saved = localStorage.getItem('watched_episodes');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const toggleWatched = (epId) => {
+    if (!epId) return;
+    setWatchedEpisodes(prev => {
+      const updated = prev.includes(epId)
+        ? prev.filter(id => id !== epId)
+        : [...prev, epId];
+      localStorage.setItem('watched_episodes', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearAllVocab = () => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa tất cả từ vựng đã lưu?")) {
+      setSavedVocab([]);
+      localStorage.removeItem('saved_vocab');
+    }
+  };
 
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -519,11 +541,17 @@ function App() {
             title="Chọn season"
             disabled={!selectedShow}
           >
-            {selectedShow && Object.keys(showsData[selectedShow]?.seasons || {}).map(seasonId => (
-              <option key={seasonId} value={seasonId}>
-                {showsData[selectedShow].seasons[seasonId].title}
-              </option>
-            ))}
+            {selectedShow && Object.keys(showsData[selectedShow]?.seasons || {})
+              .sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                return numA - numB;
+              })
+              .map(seasonId => (
+                <option key={seasonId} value={seasonId}>
+                  {showsData[selectedShow].seasons[seasonId].title}
+                </option>
+              ))}
           </select>
 
           {/* Episode Selector */}
@@ -533,9 +561,20 @@ function App() {
             title="Chọn tập"
             disabled={!selectedSeason}
           >
-            {(selectedShow && selectedSeason && showsData[selectedShow]?.seasons[selectedSeason]?.episodes || []).map(ep => (
-              <option key={ep.id} value={ep.id}>{ep.title}</option>
-            ))}
+            {(selectedShow && selectedSeason && showsData[selectedShow]?.seasons[selectedSeason]?.episodes || [])
+              .sort((a, b) => {
+                const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+                return numA - numB;
+              })
+              .map(ep => {
+                const isWatched = watchedEpisodes.includes(ep.id);
+                return (
+                  <option key={ep.id} value={ep.id}>
+                    {isWatched ? '✓ ' : ''}{ep.title}
+                  </option>
+                );
+              })}
           </select>
         </div>
       </header>
@@ -559,6 +598,15 @@ function App() {
                 onClick={togglePlay}
                 onPlay={() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }}
                 onLoadedMetadata={() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }}
+                onEnded={() => {
+                  if (currentEpisode) {
+                    setWatchedEpisodes(prev => {
+                      const updated = prev.includes(currentEpisode.id) ? prev : [...prev, currentEpisode.id];
+                      localStorage.setItem('watched_episodes', JSON.stringify(updated));
+                      return updated;
+                    });
+                  }
+                }}
               />
             )}
 
@@ -697,6 +745,19 @@ function App() {
             </div>
             
             <div className="study-bar-group">
+              {/* Progress watched checkbox */}
+              <div className="watched-toggle-container">
+                <label className="watched-toggle-label">
+                  <input 
+                    type="checkbox"
+                    checked={currentEpisode ? watchedEpisodes.includes(currentEpisode.id) : false}
+                    onChange={() => currentEpisode && toggleWatched(currentEpisode.id)}
+                    className="watched-checkbox"
+                  />
+                  <span className="setting-label">Đã hoàn thành tập</span>
+                </label>
+              </div>
+
               {/* Shadowing Delay Selector */}
               <div className="shadowing-delay-selector">
                 <span className="setting-label">Dừng tự nói (Shadowing):</span>
@@ -792,6 +853,11 @@ function App() {
               </div>
             ) : (
               <div className="vocab-list">
+                {savedVocab.length > 0 && (
+                  <button className="btn-clear-all-vocab" onClick={clearAllVocab}>
+                    🗑 Xóa tất cả từ đã lưu
+                  </button>
+                )}
                 {savedVocab.map((item, idx) => (
                   <div key={idx} className="vocab-item">
                     <div className="vocab-word-header">
