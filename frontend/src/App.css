@@ -861,22 +861,42 @@ video {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(46, 213, 115, 0.95);
+  background: rgba(30, 39, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
   padding: 8px 16px;
-  border-radius: 20px;
+  border-radius: 30px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   z-index: 100;
-  animation: fadeInOut 3s forwards;
-  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: fadeInOut 5s forwards;
+}
+
+.btn-resume-restart {
+  background: #ffca4a;
+  color: #000;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-resume-restart:hover {
+  background: #ffe066;
+  transform: scale(1.05);
 }
 
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translate(-50%, -10px); }
-  10% { opacity: 1; transform: translate(-50%, 0); }
-  90% { opacity: 1; transform: translate(-50%, 0); }
+  5% { opacity: 1; transform: translate(-50%, 0); }
+  95% { opacity: 1; transform: translate(-50%, 0); }
   100% { opacity: 0; transform: translate(-50%, -10px); }
 }
 

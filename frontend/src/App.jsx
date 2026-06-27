@@ -38,8 +38,7 @@ function App() {
   const [revealAll, setRevealAll] = useState(false);
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
-  const [loopSentence, setLoopSentence] = useState(false);
-  const [resumeMessage, setResumeMessage] = useState('');
+  const [resumeData, setResumeData] = useState(null); // { time, formatted }
   const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
     const saved = localStorage.getItem('watched_episodes');
     return saved ? JSON.parse(saved) : [];
@@ -396,16 +395,7 @@ function App() {
       setActiveSidebarSub(current);
     }
 
-    // Loop sentence: when active, we loop the current subtitle segment
-    if (loopSentence && lastSubRef.current) {
-      const active = lastSubRef.current;
-      if (time >= active.end - 0.15) {
-        if (time < active.end + 1.5) {
-          video.currentTime = active.start;
-          return;
-        }
-      }
-    }
+
 
     if (current) {
       const currentIdx = subtitles.indexOf(current);
@@ -665,10 +655,10 @@ function App() {
                     if (savedPositions) {
                       const positions = JSON.parse(savedPositions);
                       const savedTime = positions[currentEpisode.id];
-                      if (savedTime && savedTime > 2) {
+                      if (savedTime && savedTime > 5) {
                         videoRef.current.currentTime = savedTime;
-                        setResumeMessage(`Đã khôi phục vị trí học lúc trước: ${formatTime(savedTime)}`);
-                        setTimeout(() => setResumeMessage(''), 3000);
+                        setResumeData({ time: savedTime, formatted: formatTime(savedTime) });
+                        setTimeout(() => setResumeData(null), 5000);
                       }
                     }
                   }
@@ -685,9 +675,23 @@ function App() {
               />
             )}
 
-            {resumeMessage && (
-              <div className="resume-toast-banner">
-                {resumeMessage}
+            {resumeData && (
+              <div className="resume-toast-banner" onClick={(e) => e.stopPropagation()}>
+                <span>Đã khôi phục vị trí cũ: {resumeData.formatted}</span>
+                <button className="btn-resume-restart" onClick={() => {
+                  if (videoRef.current) {
+                    videoRef.current.currentTime = 0;
+                    const saved = localStorage.getItem('resume_positions');
+                    if (saved) {
+                      const positions = JSON.parse(saved);
+                      delete positions[currentEpisode.id];
+                      localStorage.setItem('resume_positions', JSON.stringify(positions));
+                    }
+                  }
+                  setResumeData(null);
+                }}>
+                  Xem lại từ đầu
+                </button>
               </div>
             )}
 
@@ -797,13 +801,7 @@ function App() {
                   🇻🇳 VIE
                 </button>
 
-                <button 
-                  className={`btn-ctrl ${loopSentence ? 'active' : ''}`}
-                  onClick={() => setLoopSentence(!loopSentence)}
-                  title="Lặp đi lặp lại câu phụ đề hiện tại (A-B Loop)"
-                >
-                  🔁 Lặp câu
-                </button>
+
 
 
                 <button 
