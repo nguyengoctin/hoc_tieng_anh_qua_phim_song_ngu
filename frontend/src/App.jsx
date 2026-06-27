@@ -112,6 +112,7 @@ function App() {
   const lastSubIndexRef = useRef(-1);
   const controlsTimeoutRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
+  const lastSubRef = useRef(null);
 
   // Fetch episodes on mount
   useEffect(() => {
@@ -198,6 +199,7 @@ function App() {
 
     setActiveSub(null);
     setActiveSidebarSub(null);
+    lastSubRef.current = null;
 
     fetch(currentEpisode.subtitle_url)
       .then(res => res.text())
@@ -385,17 +387,28 @@ function App() {
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
+    if (current) {
+      lastSubRef.current = current;
+    }
     setActiveSub(current);
 
     if (current) {
       setActiveSidebarSub(current);
-      const currentIdx = subtitles.indexOf(current);
+    }
 
-      // Loop sentence: when active, we loop the current subtitle segment
-      if (loopSentence && time >= current.end - 0.15) {
-        video.currentTime = current.start;
-        return;
+    // Loop sentence: when active, we loop the current subtitle segment
+    if (loopSentence && lastSubRef.current) {
+      const active = lastSubRef.current;
+      if (time >= active.end - 0.15) {
+        if (time < active.end + 1.5) {
+          video.currentTime = active.start;
+          return;
+        }
       }
+    }
+
+    if (current) {
+      const currentIdx = subtitles.indexOf(current);
 
       // Shadowing / Auto-pause: when active
       if (shadowingDelay !== -99 && lastSubIndexRef.current !== currentIdx && time >= current.end - 0.15) {
