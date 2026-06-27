@@ -38,10 +38,56 @@ function App() {
   const [revealAll, setRevealAll] = useState(false);
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
+  const [loopSentence, setLoopSentence] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState('');
   const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
     const saved = localStorage.getItem('watched_episodes');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Subtitle Hotkeys Handler
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      const time = video.currentTime;
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        const current = subtitles.find(s => time >= s.start && time <= s.end);
+        if (current) {
+          const currentIdx = subtitles.indexOf(current);
+          if (time - current.start < 1.5 && currentIdx > 0) {
+            video.currentTime = subtitles[currentIdx - 1].start;
+          } else {
+            video.currentTime = current.start;
+          }
+        } else {
+          const prev = [...subtitles].reverse().find(s => s.end < time);
+          if (prev) {
+            video.currentTime = prev.start;
+          }
+        }
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        const next = subtitles.find(s => s.start > time);
+        if (next) {
+          video.currentTime = next.start;
+        }
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [subtitles, isPlaying]);
 
   const toggleWatched = (epId) => {
     if (!epId) return;
@@ -330,12 +376,26 @@ function App() {
     const time = video.currentTime;
     setCurrentTime(time);
 
+    // Save resume position
+    if (currentEpisode && time > 2 && video.duration && time < video.duration - 5) {
+      const savedPositions = localStorage.getItem('resume_positions');
+      const positions = savedPositions ? JSON.parse(savedPositions) : {};
+      positions[currentEpisode.id] = time;
+      localStorage.setItem('resume_positions', JSON.stringify(positions));
+    }
+
     const current = subtitles.find(s => time >= s.start && time <= s.end);
     setActiveSub(current);
 
     if (current) {
       setActiveSidebarSub(current);
       const currentIdx = subtitles.indexOf(current);
+
+      // Loop sentence: when active, we loop the current subtitle segment
+      if (loopSentence && time >= current.end - 0.15) {
+        video.currentTime = current.start;
+        return;
+      }
 
       // Shadowing / Auto-pause: when active
       if (shadowingDelay !== -99 && lastSubIndexRef.current !== currentIdx && time >= current.end - 0.15) {
@@ -585,7 +645,21 @@ function App() {
                 onDurationChange={() => setDuration(videoRef.current?.duration || 0)}
                 onClick={togglePlay}
                 onPlay={() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }}
-                onLoadedMetadata={() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }}
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    videoRef.current.playbackRate = playbackSpeed;
+                    const savedPositions = localStorage.getItem('resume_positions');
+                    if (savedPositions) {
+                      const positions = JSON.parse(savedPositions);
+                      const savedTime = positions[currentEpisode.id];
+                      if (savedTime && savedTime > 2) {
+                        videoRef.current.currentTime = savedTime;
+                        setResumeMessage(`Đã khôi phục vị trí học lúc trước: ${formatTime(savedTime)}`);
+                        setTimeout(() => setResumeMessage(''), 3000);
+                      }
+                    }
+                  }
+                }}
                 onEnded={() => {
                   if (currentEpisode) {
                     setWatchedEpisodes(prev => {
@@ -596,6 +670,12 @@ function App() {
                   }
                 }}
               />
+            )}
+
+            {resumeMessage && (
+              <div className="resume-toast-banner">
+                {resumeMessage}
+              </div>
             )}
 
             {/* Cinematic Overlay Gradient top/bottom */}
@@ -702,6 +782,14 @@ function App() {
                   title="Hiện/Ẩn phụ đề tiếng Việt"
                 >
                   🇻🇳 VIE
+                </button>
+
+                <button 
+                  className={`btn-ctrl ${loopSentence ? 'active' : ''}`}
+                  onClick={() => setLoopSentence(!loopSentence)}
+                  title="Lặp đi lặp lại câu phụ đề hiện tại (A-B Loop)"
+                >
+                  🔁 Lặp câu
                 </button>
 
 
