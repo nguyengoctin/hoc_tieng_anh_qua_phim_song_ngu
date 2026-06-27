@@ -134,7 +134,7 @@ video {
 /* Custom Subtitles styling */
 .subtitles-overlay {
   position: absolute;
-  bottom: 90px;
+  bottom: 95px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -142,15 +142,16 @@ video {
   text-align: center;
   pointer-events: auto;
   z-index: 5;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 12px 24px;
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(10, 10, 10, 0.8);
+  padding: 14px 30px;
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .sub-english {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
   color: #ffffff;
   margin-bottom: 8px;
@@ -159,7 +160,7 @@ video {
 }
 
 .sub-vietnamese {
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 500;
   color: #ffca4a; /* Soft yellow for translated subs */
   line-height: 1.3;
