@@ -76,11 +76,17 @@ def clean_vtt_file(filepath):
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(final_content)
 
+import sys
+
 def main():
     vtt_dir = "/home/ngoctin/hoc_tieng_anh_qua_friends/data/subtitles/bilingual/VTT"
-    for filename in sorted(os.listdir(vtt_dir)):
-        if filename.endswith(".vtt"):
-            clean_vtt_file(os.path.join(vtt_dir, filename))
+    if len(sys.argv) > 1:
+        vtt_dir = sys.argv[1]
+        
+    for root, dirs, files in os.walk(vtt_dir):
+        for filename in sorted(files):
+            if filename.endswith(".vtt"):
+                clean_vtt_file(os.path.join(root, filename))
             
 if __name__ == "__main__":
     main()
