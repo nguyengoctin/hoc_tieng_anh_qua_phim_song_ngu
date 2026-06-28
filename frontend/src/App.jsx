@@ -372,10 +372,31 @@ function App() {
     if (level === 0) return new Set();
     const words = text.split(/(\s+)/);
     const wordIndices = [];
+    
+    // Proper noun and filler word avoidance system
+    let isSentenceStart = true;
+    const fillerWords = new Set(['oh', 'hey', 'um', 'uh', 'ah', 'yeah', 'yep', 'okay', 'ok', 'ooh', 'wow']);
+
     words.forEach((w, idx) => {
-      if (w.trim() && /[a-zA-Z]/.test(w)) {
+      const cleanWord = w.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+      if (!cleanWord || !/[a-zA-Z]/.test(cleanWord)) {
+        if (/[.!?]/.test(w)) {
+          isSentenceStart = true;
+        }
+        return;
+      }
+
+      // Check if candidate is a Proper Noun (e.g. name like Dwight, Monica) or simple filler word
+      const isI = cleanWord === 'I' || cleanWord.startsWith("I'");
+      const startsWithCap = /^[A-Z]/.test(cleanWord);
+      const isProperNoun = startsWithCap && !isSentenceStart && !isI;
+      const isFiller = fillerWords.has(cleanWord.toLowerCase());
+
+      if (!isProperNoun && !isFiller) {
         wordIndices.push(idx);
       }
+
+      isSentenceStart = false;
     });
     
     const count = Math.ceil(wordIndices.length * level);
