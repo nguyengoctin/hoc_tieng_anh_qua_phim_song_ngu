@@ -891,6 +891,11 @@ function App() {
                 >
                   <option value="-99">Tắt</option>
                   <option value="999">Dừng hẳn</option>
+                  <option value="0.3">30% độ dài câu</option>
+                  <option value="0.5">50% độ dài câu</option>
+                  <option value="0.7">70% độ dài câu</option>
+                  <option value="0.8">80% độ dài câu</option>
+                  <option value="0.9">90% độ dài câu</option>
                   <option value="1.0">100% độ dài câu</option>
                   <option value="1.3">130% độ dài câu</option>
                   <option value="1.5">150% độ dài câu</option>
