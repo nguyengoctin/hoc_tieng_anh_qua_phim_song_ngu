@@ -1021,6 +1021,7 @@ function App() {
                 <button className={`btn-study-mode ${blankLevel === 0 ? 'active' : ''}`} onClick={() => { setBlankLevel(0); setRevealAll(false); }}>Tắt</button>
                 <button className={`btn-study-mode ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.3); setRevealAll(false); }}>30%</button>
                 <button className={`btn-study-mode ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.5); setRevealAll(false); }}>50%</button>
+                <button className={`btn-study-mode ${blankLevel === 0.7 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.7); setRevealAll(false); }}>70%</button>
                 <button className={`btn-study-mode ${blankLevel === 1.0 ? 'active' : ''}`} onClick={() => { setBlankLevel(1.0); setRevealAll(false); }}>100%</button>
                 
                 {blankLevel > 0 && (
