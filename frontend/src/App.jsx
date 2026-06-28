@@ -162,27 +162,69 @@ function App() {
       .then(data => {
         setShowsData(data);
         
-        // Auto-select first show, first season, first episode
-        const showKeys = Object.keys(data);
+        // Sort keys alphabetically/numerically to avoid random filesystem order
+        const showKeys = Object.keys(data).sort();
         if (showKeys.length > 0) {
-          const firstShowId = showKeys[0];
-          setSelectedShow(firstShowId);
-          
-          const seasonKeys = Object.keys(data[firstShowId].seasons);
-          if (seasonKeys.length > 0) {
-            const firstSeasonId = seasonKeys[0];
-            setSelectedSeason(firstSeasonId);
-            
-            const episodes = data[firstShowId].seasons[firstSeasonId].episodes;
-            if (episodes.length > 0) {
-              const firstEpisode = episodes[0];
-              setSelectedEpisodeId(firstEpisode.id);
-              setCurrentEpisode(firstEpisode);
+          // Check localStorage for last watched episode
+          const savedLastWatched = localStorage.getItem('last_watched_episode');
+          let lastWatched = null;
+          try {
+            if (savedLastWatched) lastWatched = JSON.parse(savedLastWatched);
+          } catch(e) {
+            console.error("Error parsing last watched episode:", e);
+          }
+
+          let targetShow = showKeys[0];
+          let targetSeason = '';
+          let targetEpisode = null;
+
+          if (lastWatched && data[lastWatched.showId]) {
+            targetShow = lastWatched.showId;
+            const seasonKeys = Object.keys(data[targetShow].seasons).sort();
+            if (seasonKeys.includes(lastWatched.seasonId)) {
+              targetSeason = lastWatched.seasonId;
+              const episodes = data[targetShow].seasons[targetSeason].episodes;
+              const savedEp = episodes.find(e => e.id === lastWatched.episodeId);
+              if (savedEp) {
+                targetEpisode = savedEp;
+              } else if (episodes.length > 0) {
+                targetEpisode = episodes[0];
+              }
             }
+          }
+
+          // Fallback to first sorted show, season, episode if not restored
+          if (!targetSeason || !targetEpisode) {
+            const seasonKeys = Object.keys(data[targetShow].seasons).sort();
+            if (seasonKeys.length > 0) {
+              targetSeason = seasonKeys[0];
+              const episodes = data[targetShow].seasons[targetSeason].episodes;
+              if (episodes.length > 0) {
+                targetEpisode = episodes[0];
+              }
+            }
+          }
+
+          setSelectedShow(targetShow);
+          if (targetSeason) setSelectedSeason(targetSeason);
+          if (targetEpisode) {
+            setSelectedEpisodeId(targetEpisode.id);
+            setCurrentEpisode(targetEpisode);
           }
         }
       })
       .catch(err => console.error("Error loading episodes:", err));
+
+  // Save last watched episode details to localStorage
+  useEffect(() => {
+    if (currentEpisode && selectedShow && selectedSeason) {
+      localStorage.setItem('last_watched_episode', JSON.stringify({
+        showId: selectedShow,
+        seasonId: selectedSeason,
+        episodeId: currentEpisode.id
+      }));
+    }
+  }, [currentEpisode, selectedShow, selectedSeason]);
 
     const saved = localStorage.getItem('saved_vocab');
     if (saved) {
