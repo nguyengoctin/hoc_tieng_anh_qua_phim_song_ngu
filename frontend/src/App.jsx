@@ -153,6 +153,7 @@ function App() {
   const lastSubIndexRef = useRef(-1);
   const controlsTimeoutRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
+  const lastSubChangeTimeRef = useRef(0);
 
   // Fetch episodes on mount
   useEffect(() => {
@@ -195,6 +196,11 @@ function App() {
     setRevealAll(false);
     setRevealedIndices([]);
   }, [activeSub]);
+
+  // Track the timestamp when the displayed subtitle actually changes
+  useEffect(() => {
+    lastSubChangeTimeRef.current = Date.now();
+  }, [activeSub, pausedSub]);
 
   const handleShowChange = (showId) => {
     setSelectedShow(showId);
@@ -353,6 +359,10 @@ function App() {
         video.currentTime = Math.min(duration, video.currentTime + 10);
       } else if (e.key === 'Tab') {
         e.preventDefault();
+        // Prevent accidental overflow tab presses within 400ms of subtitle changes
+        if (Date.now() - lastSubChangeTimeRef.current < 400) {
+          return;
+        }
         if (subToUse) {
           const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
           const blankedArray = Array.from(blankedSet).sort((a, b) => a - b);
