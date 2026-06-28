@@ -327,8 +327,12 @@ function App() {
         const [startStr, endStr] = timeLine.split('-->');
         
         const textLines = lines.slice(2);
-        const english = textLines[0] || '';
-        const vietnamese = textLines[1] || '';
+        let english = textLines[0] || '';
+        let vietnamese = textLines[1] || '';
+
+        // Clean up broken Unicode replacement characters () caused by source database corruptions
+        english = english.replace(/\uFFFD/g, "'");
+        vietnamese = vietnamese.replace(/\uFFFD/g, "'");
 
         parsed.push({
           index: parseInt(lines[0], 10) || parsed.length + 1,
