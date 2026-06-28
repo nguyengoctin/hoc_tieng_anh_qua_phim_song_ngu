@@ -203,10 +203,7 @@ function App() {
     }
   }, [activeSub, pausedSub]);
 
-  // Track the timestamp when the displayed subtitle actually changes
-  useEffect(() => {
-    lastSubChangeTimeRef.current = Date.now();
-  }, [activeSub, pausedSub]);
+
 
 
 
