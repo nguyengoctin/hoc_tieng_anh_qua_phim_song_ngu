@@ -780,7 +780,7 @@ function App() {
       contextText += `- Câu thoại cần học: "${sub.english}" (Hãy tập trung giải thích chính xác câu này)\n`;
       if (nextSub) contextText += `- Câu thoại tiếp sau: "${nextSub.english}"\n`;
 
-      textToCopy = `Tôi đang xem phim và muốn học câu thoại này:\n"${sub.english}"\n\nDưới đây là ngữ cảnh đoạn hội thoại xung quanh để bạn hiểu rõ hoàn cảnh:\n${contextText}\nHãy đóng vai gia sư tiếng Anh giải thích súc tích (dưới 150 từ, chia làm 3 gạch đầu dòng ngắn) câu thoại cần học ở trên:\n- Nghĩa & Ngữ cảnh: Ý nghĩa thực tế và sắc thái của câu thoại trong văn cảnh giao tiếp này.\n- Cấu trúc & Cụm từ: Cụm từ (idiom, phrasal verb, slang) hoặc điểm ngữ pháp đáng chú ý.\n- Cách nói khác tự nhiên: 1 cách diễn đạt tương đương phổ biến trong đời sống.`;
+      textToCopy = `Tôi đang xem phim và muốn học câu thoại này:\n"${sub.english}"\n\nDưới đây là ngữ cảnh đoạn hội thoại xung quanh để bạn hiểu rõ hoàn cảnh:\n${contextText}\nHãy đóng vai gia sư tiếng Anh giải thích súc tích (dưới 120 từ) câu thoại cần học ở trên.\nYêu cầu bắt buộc viết theo đúng cấu trúc phân cấp (markdown) sau, không viết thành đoạn văn dài:\n\n1. **Ý nghĩa & Ngữ cảnh**:\n   - *Nghĩa*: [Giải nghĩa thực tế siêu ngắn gọn]\n   - *Ngữ cảnh*: [Sắc thái, hoàn cảnh dùng trong phim]\n2. **Cấu trúc & Cụm từ**:\n   - **[Cụm từ/Từ khóa đáng học]**: [Giải nghĩa nhanh ngữ pháp/từ vựng]\n3. **Cách nói khác tự nhiên**:\n   - "[Cách nói tương đương phổ biến đời thường]"`;
     }
 
     navigator.clipboard.writeText(textToCopy).then(() => {
