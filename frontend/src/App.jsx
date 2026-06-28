@@ -529,9 +529,9 @@ function App() {
       setActiveSidebarSub(current);
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.15s past the end to let voice trail finish)
+    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.1s past the end to let voice trail finish)
     if (Number(shadowingDelay) !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end + 0.15 && time <= s.end + 0.8);
+      const endedSub = subtitles.find(s => time >= s.end + 0.1 && time <= s.end + 0.8);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         setPausedSub(endedSub); // lock this sub on screen
