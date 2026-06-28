@@ -396,16 +396,34 @@ function App() {
           video.play();
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        const currentIndex = subtitles.findIndex(s => s === subToUse);
-        if (currentIndex > 0) {
-          video.currentTime = subtitles[currentIndex - 1].start;
-          video.play();
+        if (subToUse) {
+          const currentIndex = subtitles.findIndex(s => s === subToUse);
+          if (currentIndex > 0) {
+            video.currentTime = subtitles[currentIndex - 1].start;
+            video.play();
+          }
+        } else {
+          // If in gap, find the last sub that ended before current time
+          const prevSub = [...subtitles].reverse().find(s => s.end < video.currentTime);
+          if (prevSub) {
+            video.currentTime = prevSub.start;
+            video.play();
+          }
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        const currentIndex = subtitles.findIndex(s => s === subToUse);
-        if (currentIndex !== -1 && currentIndex < subtitles.length - 1) {
-          video.currentTime = subtitles[currentIndex + 1].start;
-          video.play();
+        if (subToUse) {
+          const currentIndex = subtitles.findIndex(s => s === subToUse);
+          if (currentIndex !== -1 && currentIndex < subtitles.length - 1) {
+            video.currentTime = subtitles[currentIndex + 1].start;
+            video.play();
+          }
+        } else {
+          // If in gap, find the first sub that starts after current time
+          const nextSub = subtitles.find(s => s.start > video.currentTime);
+          if (nextSub) {
+            video.currentTime = nextSub.start;
+            video.play();
+          }
         }
       } else if (e.key === 'ArrowLeft') {
         video.currentTime = Math.max(0, video.currentTime - 10);
