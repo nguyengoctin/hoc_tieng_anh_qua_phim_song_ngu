@@ -517,17 +517,17 @@ video {
 
 /* Study & Learning Features Styling */
 .word-span.blanked {
-  border-bottom: 2px dashed #ffca4a;
-  color: #ffca4a;
+  border-bottom: 2px dashed #00d2ff;
+  color: #00d2ff;
   cursor: help;
   padding: 0 4px;
-  background: rgba(255, 202, 74, 0.05);
+  background: rgba(0, 210, 255, 0.08);
   border-radius: 2px;
 }
 
 .word-span.blanked:hover {
-  background: rgba(255, 202, 74, 0.15);
-  color: #ffca4a;
+  background: rgba(0, 210, 255, 0.2);
+  color: #00d2ff;
   transform: none;
 }
 
