@@ -450,7 +450,7 @@ function App() {
         }
 
         const segmentDuration = endedSub.end - endedSub.start;
-        const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
+        const totalPauseSeconds = Math.max(0.5, segmentDuration * shadowingDelay);
 
         if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
         resumeTimeoutRef.current = setTimeout(() => {
@@ -886,18 +886,17 @@ function App() {
                 <span className="setting-label">Dừng tự nói:</span>
                 <select 
                   value={shadowingDelay} 
-                  onChange={(e) => setShadowingDelay(parseInt(e.target.value))}
+                  onChange={(e) => setShadowingDelay(parseFloat(e.target.value))}
                   className="select-resume-delay"
                 >
                   <option value="-99">Tắt</option>
                   <option value="999">Dừng hẳn</option>
-                  <option value="-2">Độ dài câu - 2s</option>
-                  <option value="-1">Độ dài câu - 1s</option>
-                  <option value="0">Bằng độ dài câu</option>
-                  <option value="1">Độ dài câu + 1s</option>
-                  <option value="3">Độ dài câu + 3s</option>
-                  <option value="5">Độ dài câu + 5s</option>
-                  <option value="7">Độ dài câu + 7s</option>
+                  <option value="1.0">100% độ dài câu</option>
+                  <option value="1.3">130% độ dài câu</option>
+                  <option value="1.5">150% độ dài câu</option>
+                  <option value="1.8">180% độ dài câu</option>
+                  <option value="2.0">200% độ dài câu</option>
+                  <option value="2.5">250% độ dài câu</option>
                 </select>
               </div>
 
