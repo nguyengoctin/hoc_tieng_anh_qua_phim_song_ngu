@@ -425,14 +425,19 @@ function App() {
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
-    setActiveSub(current);
     if (current) {
+      setActiveSub(current);
       setActiveSidebarSub(current);
+    } else {
+      // If the video is playing, clear the subtitles. If it's paused (shadowing), keep them visible!
+      if (!video.paused) {
+        setActiveSub(null);
+      }
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended
+    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.15s past the end to let voice trail finish)
     if (shadowingDelay !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end - 0.05 && time <= s.end + 0.6);
+      const endedSub = subtitles.find(s => time >= s.end + 0.15 && time <= s.end + 0.8);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         video.pause();
