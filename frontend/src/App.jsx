@@ -154,6 +154,7 @@ function App() {
   const controlsTimeoutRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
   const lastSubChangeTimeRef = useRef(0);
+  const lastResetSubIdRef = useRef(null);
 
   // Fetch episodes on mount
   useEffect(() => {
@@ -190,12 +191,18 @@ function App() {
     }
   }, []);
 
-  // Reset blanking states when activeSub changes
+  // Reset blanking states only when we transition to a different, non-null subtitle segment
   useEffect(() => {
-    setRevealBlanked(false);
-    setRevealAll(false);
-    setRevealedIndices([]);
-  }, [activeSub]);
+    const subToUse = pausedSub || activeSub;
+    if (subToUse) {
+      if (lastResetSubIdRef.current !== subToUse.start) {
+        lastResetSubIdRef.current = subToUse.start;
+        setRevealBlanked(false);
+        setRevealAll(false);
+        setRevealedIndices([]);
+      }
+    }
+  }, [activeSub, pausedSub]);
 
   // Track the timestamp when the displayed subtitle actually changes
   useEffect(() => {
