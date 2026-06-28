@@ -11,7 +11,6 @@ function App() {
   const [currentEpisode, setCurrentEpisode] = useState(null);
   const [subtitles, setSubtitles] = useState([]);
   const [activeSub, setActiveSub] = useState(null);
-  const [pausedSub, setPausedSub] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -193,21 +192,20 @@ function App() {
 
   // Reset blanking states only when we transition to a different, non-null subtitle segment
   useEffect(() => {
-    const subToUse = pausedSub || activeSub;
-    if (subToUse) {
-      if (lastResetSubIdRef.current !== subToUse.start) {
-        lastResetSubIdRef.current = subToUse.start;
+    if (activeSub) {
+      if (lastResetSubIdRef.current !== activeSub.start) {
+        lastResetSubIdRef.current = activeSub.start;
         setRevealBlanked(false);
         setRevealAll(false);
         setRevealedIndices([]);
       }
     }
-  }, [activeSub, pausedSub]);
+  }, [activeSub]);
 
   // Track the timestamp when the displayed subtitle actually changes
   useEffect(() => {
     lastSubChangeTimeRef.current = Date.now();
-  }, [activeSub, pausedSub]);
+  }, [activeSub]);
 
   const handleShowChange = (showId) => {
     setSelectedShow(showId);
@@ -338,24 +336,22 @@ function App() {
       const video = videoRef.current;
       if (!video) return;
 
-      const subToUse = pausedSub || activeSub;
-
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        if (subToUse) {
-          video.currentTime = subToUse.start;
+        if (activeSub) {
+          video.currentTime = activeSub.start;
           video.play();
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        const currentIndex = subtitles.findIndex(s => s === subToUse);
+        const currentIndex = subtitles.findIndex(s => s === activeSub);
         if (currentIndex > 0) {
           video.currentTime = subtitles[currentIndex - 1].start;
           video.play();
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        const currentIndex = subtitles.findIndex(s => s === subToUse);
+        const currentIndex = subtitles.findIndex(s => s === activeSub);
         if (currentIndex !== -1 && currentIndex < subtitles.length - 1) {
           video.currentTime = subtitles[currentIndex + 1].start;
           video.play();
@@ -370,8 +366,8 @@ function App() {
         if (Date.now() - lastSubChangeTimeRef.current < 400) {
           return;
         }
-        if (subToUse) {
-          const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
+        if (activeSub) {
+          const blankedSet = getBlankedIndices(activeSub.english, blankLevel);
           const blankedArray = Array.from(blankedSet).sort((a, b) => a - b);
           const nextToReveal = blankedArray.find(idx => !revealedIndices.includes(idx));
           if (nextToReveal !== undefined) {
@@ -383,7 +379,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSub, pausedSub, subtitles, duration, blankLevel, revealedIndices]);
+  }, [activeSub, subtitles, duration, blankLevel, revealedIndices]);
 
   // Netflix-style control bar auto-hide
   const handleMouseMove = () => {
@@ -460,7 +456,6 @@ function App() {
       const endedSub = subtitles.find(s => time >= s.end - 0.05 && time <= s.end + 0.6);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
-        setPausedSub(endedSub); // lock this sub on screen
         video.pause();
         setIsPlaying(false);
 
@@ -474,7 +469,6 @@ function App() {
         if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
         resumeTimeoutRef.current = setTimeout(() => {
           if (videoRef.current) {
-            setPausedSub(null); // clear lock before playing
             videoRef.current.play().then(() => setIsPlaying(true));
           }
         }, totalPauseSeconds * 1000);
@@ -497,7 +491,6 @@ function App() {
       video.pause();
       setIsPlaying(false);
     } else {
-      setPausedSub(null); // clear lock on manual play
       video.play().then(() => setIsPlaying(true));
       setClickedWord(null);
     }
@@ -765,16 +758,16 @@ function App() {
             <div className={`cinematic-overlay-bottom ${controlsVisible ? 'visible' : ''}`} />
 
             {/* Custom Subtitles Overlay */}
-            {(pausedSub || activeSub) && (showEnglish || showVietnamese) && (
+            {activeSub && (showEnglish || showVietnamese) && (
               <div className="subtitles-overlay">
                 {showEnglish && (
                   <div className="sub-english">
-                    {renderCleanWords((pausedSub || activeSub).english)}
+                    {renderCleanWords(activeSub.english)}
                   </div>
                 )}
                 {showVietnamese && (
                   <div className="sub-vietnamese">
-                    {(pausedSub || activeSub).vietnamese}
+                    {activeSub.vietnamese}
                   </div>
                 )}
               </div>
