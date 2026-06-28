@@ -374,27 +374,57 @@ function App() {
     const words = text.split(/(\s+)/);
     const wordIndices = [];
     
-    // Proper noun and filler word avoidance system
+    // Proper noun, sound effect, and speaker tag avoidance system
     let isSentenceStart = true;
+    let insideBrackets = false;
+    let insideParens = false;
     const fillerWords = new Set(['oh', 'hey', 'um', 'uh', 'ah', 'yeah', 'yep', 'okay', 'ok', 'ooh', 'wow']);
 
     words.forEach((w, idx) => {
-      const cleanWord = w.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+      const trimmed = w.trim();
+      
+      // Update brackets/parentheses state
+      if (trimmed.includes('[') || trimmed.includes('{')) {
+        insideBrackets = true;
+      }
+      if (trimmed.includes('(')) {
+        insideParens = true;
+      }
+
+      const cleanWord = trimmed.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
       if (!cleanWord || !/[a-zA-Z]/.test(cleanWord)) {
         if (/[.!?]/.test(w)) {
           isSentenceStart = true;
         }
+        // Update brackets/parentheses state if closed
+        if (trimmed.includes(']') || trimmed.includes('}')) {
+          insideBrackets = false;
+        }
+        if (trimmed.includes(')')) {
+          insideParens = false;
+        }
         return;
       }
 
-      // Check if candidate is a Proper Noun (e.g. name like Dwight, Monica) or simple filler word
+      // Check if candidate is speaker tag, inside brackets/parens, proper noun or filler word
+      const isSpeakerTag = trimmed.endsWith(':');
       const isI = cleanWord === 'I' || cleanWord.startsWith("I'");
       const startsWithCap = /^[A-Z]/.test(cleanWord);
       const isProperNoun = startsWithCap && !isSentenceStart && !isI;
       const isFiller = fillerWords.has(cleanWord.toLowerCase());
 
-      if (!isProperNoun && !isFiller) {
+      const shouldExclude = isSpeakerTag || insideBrackets || insideParens || isProperNoun || isFiller;
+
+      if (!shouldExclude) {
         wordIndices.push(idx);
+      }
+
+      // Post-word update for closing brackets/parens in case they are attached to the word
+      if (trimmed.includes(']') || trimmed.includes('}')) {
+        insideBrackets = false;
+      }
+      if (trimmed.includes(')')) {
+        insideParens = false;
       }
 
       isSentenceStart = false;
