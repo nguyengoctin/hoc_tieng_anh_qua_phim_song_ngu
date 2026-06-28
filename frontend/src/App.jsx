@@ -742,7 +742,7 @@ function App() {
     if (type === 'raw') {
       textToCopy = `${sub.english}\n${sub.vietnamese}`;
     } else if (type === 'prompt') {
-      textToCopy = `Giải thích ngắn gọn, súc tích (dưới 3 câu) nghĩa và ngữ cảnh dùng của câu thoại này:\n"${sub.english}"`;
+      textToCopy = `Tôi đang xem phim và muốn học câu thoại này:\n"${sub.english}"\n\nHãy đóng vai gia sư tiếng Anh giải thích súc tích (dưới 150 từ, chia làm 3 gạch đầu dòng ngắn) câu trên:\n- Nghĩa & Ngữ cảnh: Ý nghĩa thực tế và sắc thái của câu thoại trong văn cảnh giao tiếp.\n- Cấu trúc & Cụm từ: Cụm từ (idiom, phrasal verb, slang) hoặc điểm ngữ pháp đáng chú ý.\n- Cách nói khác tự nhiên: 1 cách diễn đạt tương đương phổ biến trong đời sống.`;
     }
 
     navigator.clipboard.writeText(textToCopy).then(() => {
