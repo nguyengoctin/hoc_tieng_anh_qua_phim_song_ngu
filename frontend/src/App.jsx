@@ -11,6 +11,7 @@ function App() {
   const [currentEpisode, setCurrentEpisode] = useState(null);
   const [subtitles, setSubtitles] = useState([]);
   const [activeSub, setActiveSub] = useState(null);
+  const [pausedSub, setPausedSub] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -435,11 +436,12 @@ function App() {
       }
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.15s past the end to let voice trail finish)
+    // Shadowing / Auto-pause: check if any subtitle has just ended (exactly at s.end to keep sub unchanged)
     if (shadowingDelay !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end + 0.15 && time <= s.end + 0.8);
+      const endedSub = subtitles.find(s => time >= s.end - 0.02 && time <= s.end + 0.6);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
+        setPausedSub(endedSub); // lock this sub on screen
         video.pause();
         setIsPlaying(false);
 
@@ -453,6 +455,7 @@ function App() {
         if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
         resumeTimeoutRef.current = setTimeout(() => {
           if (videoRef.current) {
+            setPausedSub(null); // clear lock before playing
             videoRef.current.play().then(() => setIsPlaying(true));
           }
         }, totalPauseSeconds * 1000);
@@ -475,6 +478,7 @@ function App() {
       video.pause();
       setIsPlaying(false);
     } else {
+      setPausedSub(null); // clear lock on manual play
       video.play().then(() => setIsPlaying(true));
       setClickedWord(null);
     }
@@ -742,16 +746,16 @@ function App() {
             <div className={`cinematic-overlay-bottom ${controlsVisible ? 'visible' : ''}`} />
 
             {/* Custom Subtitles Overlay */}
-            {activeSub && (showEnglish || showVietnamese) && (
+            {(pausedSub || activeSub) && (showEnglish || showVietnamese) && (
               <div className="subtitles-overlay">
                 {showEnglish && (
                   <div className="sub-english">
-                    {renderCleanWords(activeSub.english)}
+                    {renderCleanWords((pausedSub || activeSub).english)}
                   </div>
                 )}
                 {showVietnamese && (
                   <div className="sub-vietnamese">
-                    {activeSub.vietnamese}
+                    {(pausedSub || activeSub).vietnamese}
                   </div>
                 )}
               </div>
