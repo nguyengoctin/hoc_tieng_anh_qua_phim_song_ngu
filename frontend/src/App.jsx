@@ -740,7 +740,7 @@ function App() {
 
     let textToCopy = '';
     if (type === 'raw') {
-      textToCopy = `${sub.english}\n${sub.vietnamese}`;
+      textToCopy = sub.english;
     } else if (type === 'prompt') {
       const prevSub = index > 0 ? subtitles[index - 1] : null;
       const nextSub = index < subtitles.length - 1 ? subtitles[index + 1] : null;
