@@ -432,7 +432,7 @@ function App() {
 
     // Shadowing / Auto-pause: check if any subtitle has just ended
     if (shadowingDelay !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end + 0.05 && time <= s.end + 0.7);
+      const endedSub = subtitles.find(s => time >= s.end - 0.05 && time <= s.end + 0.6);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         video.pause();
