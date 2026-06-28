@@ -528,8 +528,8 @@ function App() {
       setActiveSub(current);
       setActiveSidebarSub(current);
     } else {
-      // Keep displaying the subtitle during the 150ms voice trail grace period to prevent flickering
-      const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.15);
+      // Keep displaying the subtitle during the 120ms voice trail grace period to prevent flickering
+      const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.12);
       if (justEnded) {
         setActiveSub(justEnded);
       } else {
@@ -537,9 +537,9 @@ function App() {
       }
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.15s past the end to let voice trail finish)
+    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.12s past the end to let voice trail finish)
     if (Number(shadowingDelay) !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end + 0.15 && time <= s.end + 0.8);
+      const endedSub = subtitles.find(s => time >= s.end + 0.12 && time <= s.end + 0.8);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         setPausedSub(endedSub); // lock this sub on screen
