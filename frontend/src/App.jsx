@@ -152,7 +152,6 @@ function App() {
   const lastSubIndexRef = useRef(-1);
   const controlsTimeoutRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
-  const lastSubRef = useRef(null);
 
   // Fetch episodes on mount
   useEffect(() => {
@@ -239,7 +238,6 @@ function App() {
 
     setActiveSub(null);
     setActiveSidebarSub(null);
-    lastSubRef.current = null;
 
     fetch(currentEpisode.subtitle_url)
       .then(res => res.text())
@@ -427,40 +425,33 @@ function App() {
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
-    if (current) {
-      lastSubRef.current = current;
-    }
     setActiveSub(current);
-
     if (current) {
       setActiveSidebarSub(current);
     }
 
-    // Shadowing / Auto-pause: when active, using lastSubRef to prevent missed frames due to timeupdate latency
-    if (shadowingDelay !== -99 && lastSubRef.current) {
-      const active = lastSubRef.current;
-      const activeIdx = subtitles.indexOf(active);
-      if (lastSubIndexRef.current !== activeIdx && time >= active.end - 0.15) {
-        if (time < active.end + 1.5) {
-          video.pause();
-          setIsPlaying(false);
-          lastSubIndexRef.current = activeIdx;
+    // Shadowing / Auto-pause: check if any subtitle has just ended
+    if (shadowingDelay !== -99) {
+      const endedSub = subtitles.find(s => time >= s.end - 0.15 && time <= s.end + 0.8);
+      if (endedSub && lastSubIndexRef.current !== endedSub.start) {
+        lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
+        video.pause();
+        setIsPlaying(false);
 
-          if (shadowingDelay === 999) {
-            return;
-          }
-
-          const segmentDuration = active.end - active.start;
-          const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
-
-          if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-          resumeTimeoutRef.current = setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.play().then(() => setIsPlaying(true));
-            }
-          }, totalPauseSeconds * 1000);
+        if (shadowingDelay === 999) {
           return;
         }
+
+        const segmentDuration = endedSub.end - endedSub.start;
+        const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
+
+        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+        resumeTimeoutRef.current = setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => setIsPlaying(true));
+          }
+        }, totalPauseSeconds * 1000);
+        return;
       }
     }
   };
