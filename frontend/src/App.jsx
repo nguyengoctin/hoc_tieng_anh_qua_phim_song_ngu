@@ -438,7 +438,7 @@ function App() {
 
     // Shadowing / Auto-pause: check if any subtitle has just ended (exactly at s.end to keep sub unchanged)
     if (shadowingDelay !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end - 0.02 && time <= s.end + 0.6);
+      const endedSub = subtitles.find(s => time >= s.end - 0.1 && time <= s.end + 0.6);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         setPausedSub(endedSub); // lock this sub on screen
