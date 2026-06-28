@@ -147,16 +147,31 @@ def download_video(video_url, output_path):
     if '.m3u8' in video_url:
         print(f"Downloading HLS stream using ffmpeg: {video_url}")
         import subprocess
-        # ffmpeg -y -i "url" -c copy output_path
-        cmd = ['ffmpeg', '-y', '-i', video_url, '-c', 'copy', '-bsf:a', 'aac_adtstoasc', output_path]
-        try:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-            return True
-        except Exception as e:
-            print(f"\nffmpeg download failed: {e}")
-            if os.path.exists(output_path):
-                os.remove(output_path)
-            return False
+        # Set socket read/write timeout to 15 seconds (15,000,000 microseconds)
+        cmd = [
+            'ffmpeg', '-y', 
+            '-rw_timeout', '15000000', 
+            '-i', video_url, 
+            '-c', 'copy', 
+            '-bsf:a', 'aac_adtstoasc', 
+            output_path
+        ]
+        
+        for attempt in range(1, 4):
+            try:
+                if attempt > 1:
+                    print(f"Retrying HLS stream download... (Attempt {attempt}/3)")
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000000:
+                    return True
+            except Exception as e:
+                print(f"\nAttempt {attempt} failed: {e}")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                if attempt < 3:
+                    import time
+                    time.sleep(5)
+        return False
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
