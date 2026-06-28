@@ -436,35 +436,32 @@ function App() {
       setActiveSidebarSub(current);
     }
 
+    // Shadowing / Auto-pause: when active, using lastSubRef to prevent missed frames due to timeupdate latency
+    if (shadowingDelay !== -99 && lastSubRef.current) {
+      const active = lastSubRef.current;
+      const activeIdx = subtitles.indexOf(active);
+      if (lastSubIndexRef.current !== activeIdx && time >= active.end - 0.15) {
+        if (time < active.end + 1.5) {
+          video.pause();
+          setIsPlaying(false);
+          lastSubIndexRef.current = activeIdx;
 
+          if (shadowingDelay === 999) {
+            return;
+          }
 
-    if (current) {
-      const currentIdx = subtitles.indexOf(current);
+          const segmentDuration = active.end - active.start;
+          const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
 
-      // Shadowing / Auto-pause: when active
-      if (shadowingDelay !== -99 && lastSubIndexRef.current !== currentIdx && time >= current.end - 0.15) {
-        video.pause();
-        setIsPlaying(false);
-        lastSubIndexRef.current = currentIdx;
-
-        // If shadowingDelay is 999, we pause indefinitely (manual play required)
-        if (shadowingDelay === 999) {
+          if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+          resumeTimeoutRef.current = setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.play().then(() => setIsPlaying(true));
+            }
+          }, totalPauseSeconds * 1000);
           return;
         }
-
-        const segmentDuration = current.end - current.start;
-        const totalPauseSeconds = Math.max(0.5, segmentDuration + shadowingDelay);
-
-        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-        resumeTimeoutRef.current = setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.play().then(() => setIsPlaying(true));
-          }
-        }, totalPauseSeconds * 1000);
-        return;
       }
-    } else {
-      lastSubIndexRef.current = -1;
     }
   };
 
