@@ -214,6 +214,7 @@ function App() {
         }
       })
       .catch(err => console.error("Error loading episodes:", err));
+  }, []);
 
   // Save last watched episode details to localStorage
   useEffect(() => {
@@ -226,6 +227,8 @@ function App() {
     }
   }, [currentEpisode, selectedShow, selectedSeason]);
 
+  // Load saved vocabulary on mount
+  useEffect(() => {
     const saved = localStorage.getItem('saved_vocab');
     if (saved) {
       setSavedVocab(JSON.parse(saved));
