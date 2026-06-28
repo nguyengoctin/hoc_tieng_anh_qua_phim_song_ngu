@@ -23,6 +23,7 @@ function App() {
   const [savedVocab, setSavedVocab] = useState([]);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [copyFeedback, setCopyFeedback] = useState(''); // 'raw' | 'prompt' | ''
   const [isSpeedFocused, setIsSpeedFocused] = useState(false);
   const [showEnglish, setShowEnglish] = useState(true);
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -734,6 +735,24 @@ function App() {
     });
   };
 
+  const handleCopySubtitle = (sub, type) => {
+    if (!sub) return;
+
+    let textToCopy = '';
+    if (type === 'raw') {
+      textToCopy = `${sub.english}\n${sub.vietnamese}`;
+    } else if (type === 'prompt') {
+      textToCopy = `Giải thích ngắn gọn, súc tích (dưới 3 câu) nghĩa và ngữ cảnh dùng của câu thoại này:\n"${sub.english}"`;
+    }
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopyFeedback(`${sub.start}_${type}`);
+      setTimeout(() => setCopyFeedback(''), 1500);
+    }).catch(err => {
+      console.error("Failed to copy text:", err);
+    });
+  };
+
   return (
     <div className="app-container" onClick={() => setClickedWord(null)}>
       {/* Header */}
@@ -1100,20 +1119,35 @@ function App() {
                     >
                       <div className="transcript-header-bar">
                         <span className="transcript-time">{formatTime(sub.start)}</span>
-                        <button 
-                          className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isSaved) {
-                              removeSentence(`${currentEpisode.id}_${sub.start}`);
-                            } else {
-                              saveSentence(sub);
-                            }
-                          }}
-                          title={isSaved ? "Xóa lưu câu thoại" : "Lưu câu thoại"}
-                        >
-                          {isSaved ? '★' : '☆'}
-                        </button>
+                        <div className="transcript-actions" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
+                            onClick={() => handleCopySubtitle(sub, 'raw')}
+                            title="Sao chép câu thoại gốc"
+                          >
+                            {copyFeedback === `${sub.start}_raw` ? '✓' : 'Sub'}
+                          </button>
+                          <button 
+                            className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_prompt` ? 'copied' : ''}`}
+                            onClick={() => handleCopySubtitle(sub, 'prompt')}
+                            title="Sao chép Prompt Gemini"
+                          >
+                            {copyFeedback === `${sub.start}_prompt` ? '✓' : 'Gem'}
+                          </button>
+                          <button 
+                            className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
+                            onClick={() => {
+                              if (isSaved) {
+                                removeSentence(`${currentEpisode.id}_${sub.start}`);
+                              } else {
+                                saveSentence(sub);
+                              }
+                            }}
+                            title={isSaved ? "Xóa lưu câu thoại" : "Lưu câu thoại"}
+                          >
+                            {isSaved ? '★' : '☆'}
+                          </button>
+                        </div>
                       </div>
                       <p className="transcript-en">{sub.english}</p>
                       <p className="transcript-vi">{sub.vietnamese}</p>
