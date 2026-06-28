@@ -325,22 +325,24 @@ function App() {
       const video = videoRef.current;
       if (!video) return;
 
+      const subToUse = pausedSub || activeSub;
+
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        if (activeSub) {
-          video.currentTime = activeSub.start;
+        if (subToUse) {
+          video.currentTime = subToUse.start;
           video.play();
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        const currentIndex = subtitles.findIndex(s => s === activeSub);
+        const currentIndex = subtitles.findIndex(s => s === subToUse);
         if (currentIndex > 0) {
           video.currentTime = subtitles[currentIndex - 1].start;
           video.play();
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        const currentIndex = subtitles.findIndex(s => s === activeSub);
+        const currentIndex = subtitles.findIndex(s => s === subToUse);
         if (currentIndex !== -1 && currentIndex < subtitles.length - 1) {
           video.currentTime = subtitles[currentIndex + 1].start;
           video.play();
@@ -351,8 +353,8 @@ function App() {
         video.currentTime = Math.min(duration, video.currentTime + 10);
       } else if (e.key === 'Tab') {
         e.preventDefault();
-        if (activeSub) {
-          const blankedSet = getBlankedIndices(activeSub.english, blankLevel);
+        if (subToUse) {
+          const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
           const blankedArray = Array.from(blankedSet).sort((a, b) => a - b);
           const nextToReveal = blankedArray.find(idx => !revealedIndices.includes(idx));
           if (nextToReveal !== undefined) {
@@ -364,7 +366,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSub, subtitles, duration, blankLevel, revealedIndices]);
+  }, [activeSub, pausedSub, subtitles, duration, blankLevel, revealedIndices]);
 
   // Netflix-style control bar auto-hide
   const handleMouseMove = () => {
