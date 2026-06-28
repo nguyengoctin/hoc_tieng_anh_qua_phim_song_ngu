@@ -248,6 +248,24 @@ function App() {
     }
   }, [activeSub, pausedSub]);
 
+  // Auto-resume playing in blanking mode when all blanked words of the current sentence are revealed
+  useEffect(() => {
+    const subToUse = pausedSub || activeSub;
+    if (subToUse && blankLevel > 0 && Number(shadowingDelay) !== -99 && Number(shadowingDelay) !== 999) {
+      const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
+      if (blankedSet.size > 0 && revealedIndices.length === blankedSet.size) {
+        // All blanked words are revealed! Auto-resume play after 800ms reading time buffer
+        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+        resumeTimeoutRef.current = setTimeout(() => {
+          if (videoRef.current && videoRef.current.paused) {
+            setPausedSub(null); // clear lock
+            videoRef.current.play().then(() => setIsPlaying(true));
+          }
+        }, 800);
+      }
+    }
+  }, [revealedIndices, activeSub, pausedSub, blankLevel, shadowingDelay]);
+
 
 
 
@@ -522,6 +540,15 @@ function App() {
 
         if (Number(shadowingDelay) === 999) {
           return;
+        }
+
+        // Check if there are blanked words in this subtitle segment
+        if (blankLevel > 0) {
+          const blankedSet = getBlankedIndices(endedSub.english, blankLevel);
+          if (blankedSet.size > 0) {
+            // Stay paused until all blanked words are revealed via Tab/clicks!
+            return;
+          }
         }
 
         const segmentDuration = endedSub.end - endedSub.start;
