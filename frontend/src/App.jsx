@@ -735,14 +735,22 @@ function App() {
     });
   };
 
-  const handleCopySubtitle = (sub, type) => {
+  const handleCopySubtitle = (sub, index, type) => {
     if (!sub) return;
 
     let textToCopy = '';
     if (type === 'raw') {
       textToCopy = `${sub.english}\n${sub.vietnamese}`;
     } else if (type === 'prompt') {
-      textToCopy = `Tôi đang xem phim và muốn học câu thoại này:\n"${sub.english}"\n\nHãy đóng vai gia sư tiếng Anh giải thích súc tích (dưới 150 từ, chia làm 3 gạch đầu dòng ngắn) câu trên:\n- Nghĩa & Ngữ cảnh: Ý nghĩa thực tế và sắc thái của câu thoại trong văn cảnh giao tiếp.\n- Cấu trúc & Cụm từ: Cụm từ (idiom, phrasal verb, slang) hoặc điểm ngữ pháp đáng chú ý.\n- Cách nói khác tự nhiên: 1 cách diễn đạt tương đương phổ biến trong đời sống.`;
+      const prevSub = index > 0 ? subtitles[index - 1] : null;
+      const nextSub = index < subtitles.length - 1 ? subtitles[index + 1] : null;
+
+      let contextText = '';
+      if (prevSub) contextText += `- Câu thoại trước đó: "${prevSub.english}"\n`;
+      contextText += `- Câu thoại cần học: "${sub.english}" (Hãy tập trung giải thích chính xác câu này)\n`;
+      if (nextSub) contextText += `- Câu thoại tiếp sau: "${nextSub.english}"\n`;
+
+      textToCopy = `Tôi đang xem phim và muốn học câu thoại này:\n"${sub.english}"\n\nDưới đây là ngữ cảnh đoạn hội thoại xung quanh để bạn hiểu rõ hoàn cảnh:\n${contextText}\nHãy đóng vai gia sư tiếng Anh giải thích súc tích (dưới 150 từ, chia làm 3 gạch đầu dòng ngắn) câu thoại cần học ở trên:\n- Nghĩa & Ngữ cảnh: Ý nghĩa thực tế và sắc thái của câu thoại trong văn cảnh giao tiếp này.\n- Cấu trúc & Cụm từ: Cụm từ (idiom, phrasal verb, slang) hoặc điểm ngữ pháp đáng chú ý.\n- Cách nói khác tự nhiên: 1 cách diễn đạt tương đương phổ biến trong đời sống.`;
     }
 
     navigator.clipboard.writeText(textToCopy).then(() => {
@@ -1122,14 +1130,14 @@ function App() {
                         <div className="transcript-actions" onClick={(e) => e.stopPropagation()}>
                           <button 
                             className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
-                            onClick={() => handleCopySubtitle(sub, 'raw')}
+                            onClick={() => handleCopySubtitle(sub, index, 'raw')}
                             title="Sao chép câu thoại gốc"
                           >
                             {copyFeedback === `${sub.start}_raw` ? '✓' : 'Sub'}
                           </button>
                           <button 
                             className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_prompt` ? 'copied' : ''}`}
-                            onClick={() => handleCopySubtitle(sub, 'prompt')}
+                            onClick={() => handleCopySubtitle(sub, index, 'prompt')}
                             title="Sao chép Prompt Gemini"
                           >
                             {copyFeedback === `${sub.start}_prompt` ? '✓' : 'Gem'}
