@@ -524,17 +524,16 @@ function App() {
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
-    if (current) {
+    // Keep displaying the ended subtitle during the 120ms grace period to prevent flickering/jumping if the next sub starts immediately
+    const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.12);
+
+    if (justEnded) {
+      setActiveSub(justEnded);
+    } else if (current) {
       setActiveSub(current);
       setActiveSidebarSub(current);
     } else {
-      // Keep displaying the subtitle during the 120ms voice trail grace period to prevent flickering
-      const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.12);
-      if (justEnded) {
-        setActiveSub(justEnded);
-      } else {
-        setActiveSub(null);
-      }
+      setActiveSub(null);
     }
 
     // Shadowing / Auto-pause: check if any subtitle has just ended (+0.12s past the end to let voice trail finish)
