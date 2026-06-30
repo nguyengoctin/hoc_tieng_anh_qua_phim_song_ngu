@@ -39,10 +39,14 @@ def get_episodes():
             for file in os.listdir(season_path):
                 if file.endswith(".mp4"):
                     ep_id = os.path.splitext(file)[0]
-                    # Format title sạch (bỏ prefix Show, SxxExx)
-                    title_clean = ep_id.replace(f"{show_name.replace('_', '')}_", "")
-                    title_clean = title_clean.replace(f"s{season_num:02d}e", "Ep ").replace("_", " ")
-                    title_clean = " ".join([w.capitalize() for w in title_clean.split()])
+                    # Trích xuất số tập (Ví dụ: từ EasyEnglishExpression_S01E01 hoặc Friends_S01E02)
+                    import re
+                    match = re.search(r'[eE](\d+)', ep_id)
+                    if match:
+                        ep_num = int(match.group(1))
+                        title_clean = f"Episode {ep_num:02d}"
+                    else:
+                        title_clean = ep_id.replace("_", " ")
 
                     video_url = f"/videos/{show_name}/{season_name}/{file}"
                     subtitle_url = f"/subtitles/{show_name}/{season_name}/{ep_id}.vtt"

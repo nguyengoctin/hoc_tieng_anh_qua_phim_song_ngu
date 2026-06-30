@@ -12,7 +12,7 @@ def get_vocabulary():
 @router.post("")
 def save_vocabulary(req: VocabRequest):
     """Lưu từ vựng mới vào SQLite database"""
-    success = db.add_vocab(req.word, req.ipa, req.translation)
+    success = db.add_vocab(req.word, req.ipa, req.translation, req.part_of_speech, req.audio_url)
     if not success:
         raise HTTPException(status_code=500, detail="Không thể lưu từ vựng vào SQLite")
     return {"status": "ok", "message": "Từ vựng được lưu thành công"}

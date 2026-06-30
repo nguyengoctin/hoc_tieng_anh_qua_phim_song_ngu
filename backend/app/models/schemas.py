@@ -18,3 +18,5 @@ class VocabRequest(BaseModel):
     word: str
     ipa: Optional[str] = ""
     translation: str
+    part_of_speech: Optional[str] = None
+    audio_url: Optional[str] = None

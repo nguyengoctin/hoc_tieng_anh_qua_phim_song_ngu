@@ -32,6 +32,7 @@ function App() {
   const [showEnglish, setShowEnglish] = useState(true);
   const [showVietnamese, setShowVietnamese] = useState(true);
   const [activeSidebarSub, setActiveSidebarSub] = useState(null);
+  const [showSubMenu, setShowSubMenu] = useState(false);
   
   // Dictionary lookup state
   const [clickedWord, setClickedWord] = useState(null);
@@ -1032,7 +1033,9 @@ function App() {
         body: JSON.stringify({
           word: wordDefinition.word,
           ipa: wordDefinition.ipa || '',
-          translation: wordDefinition.translation
+          translation: wordDefinition.translation,
+          part_of_speech: wordDefinition.part_of_speech || null,
+          audio_url: wordDefinition.audio_url || null
         })
       }).catch(err => console.error("Error saving vocab to SQLite:", err));
     }
@@ -1361,28 +1364,50 @@ function App() {
                   </select>
                 </div>
 
-                <button 
-                  className={`btn-ctrl ${showEnglish ? 'active' : ''}`}
-                  onClick={() => setShowEnglish(!showEnglish)}
-                  title="Hiện/Ẩn phụ đề tiếng Anh"
-                >
-                  🇺🇸 ENG
-                </button>
+                {/* CC Dropdown Menu (Netflix style) */}
+                <div className="cc-control-container">
+                  <button 
+                    className={`btn-ctrl btn-cc ${showEnglish || showVietnamese ? 'active' : ''}`}
+                    onClick={() => setShowSubMenu(!showSubMenu)}
+                    title="Cài đặt phụ đề"
+                  >
+                    💬 Phụ đề
+                  </button>
+                  {showSubMenu && (
+                    <div className="cc-dropdown-menu">
+                      <div className="cc-menu-title">Tùy chỉnh phụ đề</div>
+                      <label className="cc-menu-item">
+                        <span>🇺🇸 Tiếng Anh</span>
+                        <div className="premium-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={showEnglish} 
+                            onChange={() => setShowEnglish(!showEnglish)} 
+                          />
+                          <span className="switch-slider"></span>
+                        </div>
+                      </label>
+                      <label className="cc-menu-item">
+                        <span>🇻🇳 Tiếng Việt</span>
+                        <div className="premium-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={showVietnamese} 
+                            onChange={() => setShowVietnamese(!showVietnamese)} 
+                          />
+                          <span className="switch-slider"></span>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
 
                 <button 
-                  className={`btn-ctrl ${showVietnamese ? 'active' : ''}`}
-                  onClick={() => setShowVietnamese(!showVietnamese)}
-                  title="Hiện/Ẩn phụ đề tiếng Việt"
-                >
-                  🇻🇳 VIE
-                </button>
-
-                <button 
-                  className={`btn-ctrl ${showSidebar ? 'active' : ''}`}
+                  className={`btn-ctrl btn-sidebar-toggle ${showSidebar ? 'active' : ''}`}
                   onClick={() => setShowSidebar(!showSidebar)}
-                  title="Toggle kịch bản phim"
+                  title="Bật/Tắt kịch bản phim"
                 >
-                  📖 Kịch bản
+                  ☰ Kịch bản
                 </button>
               </div>
             </div>

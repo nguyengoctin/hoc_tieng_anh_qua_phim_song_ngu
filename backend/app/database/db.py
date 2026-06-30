@@ -21,9 +21,21 @@ def init_db():
             word TEXT PRIMARY KEY,
             ipa TEXT,
             translation TEXT,
+            part_of_speech TEXT,
+            audio_url TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    
+    # Thực hiện migration nhỏ nếu các cột mới chưa tồn tại
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN part_of_speech TEXT")
+    except sqlite3.OperationalError:
+        pass # Cột đã tồn tại
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN audio_url TEXT")
+    except sqlite3.OperationalError:
+        pass # Cột đã tồn tại
     
     # 2. Bảng cache kết quả AI giải thích
     cursor.execute("""
@@ -86,13 +98,13 @@ def get_completed_episodes():
 
 # --- Vocabulary Helpers ---
 
-def add_vocab(word: str, ipa: str, translation: str):
+def add_vocab(word: str, ipa: str, translation: str, part_of_speech: str = None, audio_url: str = None):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT OR REPLACE INTO vocabulary (word, ipa, translation) VALUES (?, ?, ?)",
-            (word, ipa, translation)
+            "INSERT OR REPLACE INTO vocabulary (word, ipa, translation, part_of_speech, audio_url) VALUES (?, ?, ?, ?, ?)",
+            (word, ipa, translation, part_of_speech, audio_url)
         )
         conn.commit()
         return True
@@ -105,7 +117,7 @@ def add_vocab(word: str, ipa: str, translation: str):
 def get_all_vocab():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT word, ipa, translation, created_at FROM vocabulary ORDER BY created_at DESC")
+    cursor.execute("SELECT word, ipa, translation, part_of_speech, audio_url, created_at FROM vocabulary ORDER BY created_at DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]

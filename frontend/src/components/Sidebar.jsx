@@ -143,30 +143,30 @@ export default function Sidebar({
                           english: sub.english,
                           vietnamese: sub.vietnamese
                         })}
-                        title="Chỉnh đồng bộ và sửa chữ câu thoại này"
+                        title="Chỉnh sửa và đồng bộ thời gian phụ đề"
                       >
                         ✏️
                       </button>
                       <button 
                         className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
                         onClick={() => handleCopySubtitle(sub, index, 'raw')}
-                        title="Sao chép câu thoại gốc"
+                        title="Sao chép câu thoại gốc tiếng Anh"
                       >
-                        {copyFeedback === `${sub.start}_raw` ? '✓' : 'Sub'}
+                        📋
                       </button>
                       <button 
                         className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_prompt` ? 'copied' : ''}`}
                         onClick={() => handleCopySubtitle(sub, index, 'prompt')}
-                        title="Sao chép Prompt Gemini"
+                        title="Sao chép Prompt học từ vựng gửi Gemini"
                       >
-                        {copyFeedback === `${sub.start}_prompt` ? '✓' : 'Gem'}
+                        🤖
                       </button>
                       <button
                         className="btn-sub-copy-compact btn-sidebar-ai"
                         onClick={() => handleAiExplain(sub)}
-                        title="Giải thích nhanh với AI"
+                        title="AI giải nghĩa và phân tích nhanh ngữ cảnh"
                       >
-                        ✨ AI
+                        ✨
                       </button>
                       <button 
                         className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
@@ -177,7 +177,7 @@ export default function Sidebar({
                             saveSentence(sub);
                           }
                         }}
-                        title={isSaved ? "Xóa lưu câu thoại" : "Lưu câu thoại"}
+                        title={isSaved ? "Xóa khỏi danh sách câu thoại đã lưu" : "Lưu câu thoại này"}
                       >
                         {isSaved ? '★' : '☆'}
                       </button>
@@ -189,131 +189,106 @@ export default function Sidebar({
                   {/* Subtitle Sync Editor Panel */}
                   {((syncingSegment && syncingSegment.index === sub.index) || followActiveSubtitleSync) && (
                     <div className="sub-sync-editor-panel" onClick={(e) => e.stopPropagation()}>
-                      <div className="sync-editor-row">
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.5), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.5) }));
-                          }
-                        }}>-0.5s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.3), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.3) }));
-                          }
-                        }}>-0.3s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.1), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }));
-                          }
-                        }}>-0.1s</button>
-                        <span className="sync-time-val">⏱ {followActiveSubtitleSync ? sub.start.toFixed(3) : syncingSegment?.start.toFixed(3)}s</span>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.1), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }));
-                          }
-                        }}>+0.1s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.3), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.3) }));
-                          }
-                        }}>+0.3s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.5), sub.end, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.5) }));
-                          }
-                        }}>+0.5s</button>
-                      </div>
-                      <div className="sync-editor-row">
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.5), sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.5) }));
-                          }
-                        }}>-0.5s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.3), sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.3) }));
-                          }
-                        }}>-0.3s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.1), sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }));
-                          }
-                        }}>-0.1s</button>
-                        <span className="sync-time-val">🛑 {followActiveSubtitleSync ? sub.end.toFixed(3) : syncingSegment?.end.toFixed(3)}s</span>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, sub.end + 0.1, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }));
-                          }
-                        }}>+0.1s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, sub.end + 0.3, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.3 }));
-                          }
-                        }}>+0.3s</button>
-                        <button className="btn-sync-adjust" onClick={() => {
-                          if (followActiveSubtitleSync) {
-                            handleSaveTimeSync(sub.index, sub.start, sub.end + 0.5, sub.english, sub.vietnamese);
-                          } else {
-                            setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.5 }));
-                          }
-                        }}>+0.5s</button>
-                      </div>
-                      
-                      {/* Text Inputs for English & Vietnamese */}
-                      <div className="sync-editor-text-row">
-                        <input 
-                          type="text" 
-                          className="sync-text-input" 
-                          placeholder="Sửa nội dung phụ đề tiếng Anh..."
-                          value={followActiveSubtitleSync ? sub.english : (syncingSegment?.english || '')} 
-                          onChange={(e) => {
+                      {/* Start Time row */}
+                      <div className="sync-editor-row-compact">
+                        <span className="sync-time-label">Bắt đầu ({followActiveSubtitleSync ? sub.start.toFixed(2) : syncingSegment?.start.toFixed(2)}s)</span>
+                        <div className="sync-btn-group-compact">
+                          <button className="btn-adjust-minimal" onClick={() => {
                             if (followActiveSubtitleSync) {
-                              handleSaveTimeSync(sub.index, sub.start, sub.end, e.target.value, sub.vietnamese);
+                              handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.5), sub.end, sub.english, sub.vietnamese);
                             } else {
-                              setSyncingSegment(prev => ({ ...prev, english: e.target.value }));
+                              setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.5) }));
                             }
-                          }}
-                        />
-                      </div>
-                      <div className="sync-editor-text-row">
-                        <input 
-                          type="text" 
-                          className="sync-text-input" 
-                          placeholder="Sửa dịch phụ đề tiếng Việt..."
-                          value={followActiveSubtitleSync ? sub.vietnamese : (syncingSegment?.vietnamese || '')} 
-                          onChange={(e) => {
+                          }}>-0.5s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
                             if (followActiveSubtitleSync) {
-                              handleSaveTimeSync(sub.index, sub.start, sub.end, sub.english, e.target.value);
+                              handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.1), sub.end, sub.english, sub.vietnamese);
                             } else {
-                              setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }));
+                              setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }));
                             }
-                          }}
-                        />
+                          }}>-0.1s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.1), sub.end, sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }));
+                            }
+                          }}>+0.1s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.5), sub.end, sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.5) }));
+                            }
+                          }}>+0.5s</button>
+                        </div>
                       </div>
 
-                      <div className="sync-editor-actions">
-                        <button className="btn-sync-cancel" onClick={() => {
+                      {/* End Time row */}
+                      <div className="sync-editor-row-compact">
+                        <span className="sync-time-label">Kết thúc ({followActiveSubtitleSync ? sub.end.toFixed(2) : syncingSegment?.end.toFixed(2)}s)</span>
+                        <div className="sync-btn-group-compact">
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.5), sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.5) }));
+                            }
+                          }}>-0.5s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.1), sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }));
+                            }
+                          }}>-0.1s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, sub.start, sub.end + 0.1, sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }));
+                            }
+                          }}>+0.1s</button>
+                          <button className="btn-adjust-minimal" onClick={() => {
+                            if (followActiveSubtitleSync) {
+                              handleSaveTimeSync(sub.index, sub.start, sub.end + 0.5, sub.english, sub.vietnamese);
+                            } else {
+                              setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.5 }));
+                            }
+                          }}>+0.5s</button>
+                        </div>
+                      </div>
+                      
+                      {/* Text inputs */}
+                      <input 
+                        type="text" 
+                        className="sync-text-input-minimal" 
+                        placeholder="Sửa phụ đề tiếng Anh..."
+                        value={followActiveSubtitleSync ? sub.english : (syncingSegment?.english || '')} 
+                        onChange={(e) => {
+                          if (followActiveSubtitleSync) {
+                            handleSaveTimeSync(sub.index, sub.start, sub.end, e.target.value, sub.vietnamese);
+                          } else {
+                            setSyncingSegment(prev => ({ ...prev, english: e.target.value }));
+                          }
+                        }}
+                      />
+                      <input 
+                        type="text" 
+                        className="sync-text-input-minimal" 
+                        placeholder="Sửa dịch tiếng Việt..."
+                        value={followActiveSubtitleSync ? sub.vietnamese : (syncingSegment?.vietnamese || '')} 
+                        onChange={(e) => {
+                          if (followActiveSubtitleSync) {
+                            handleSaveTimeSync(sub.index, sub.start, sub.end, sub.english, e.target.value);
+                          } else {
+                            setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }));
+                          }
+                        }}
+                      />
+
+                      <div className="sync-editor-actions-minimal">
+                        <button className="btn-sync-cancel-minimal" onClick={() => {
                           if (followActiveSubtitleSync) {
                             setFollowActiveSubtitleSync(false);
                           } else {
@@ -321,7 +296,7 @@ export default function Sidebar({
                           }
                         }}>{followActiveSubtitleSync ? 'Tắt Auto' : 'Hủy'}</button>
                         {!followActiveSubtitleSync && (
-                          <button className="btn-sync-save" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu vĩnh viễn</button>
+                          <button className="btn-sync-save-minimal" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu</button>
                         )}
                       </div>
                     </div>
@@ -340,10 +315,39 @@ export default function Sidebar({
             {savedVocab.map((item, idx) => (
               <div key={idx} className="vocab-item">
                 <div className="vocab-word-header">
-                  <span className="vocab-word">{item.word}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="vocab-word">{item.word}</span>
+                    {item.audio_url && (
+                      <button 
+                        className="btn-audio-pronounce"
+                        onClick={() => {
+                          const audio = new Audio(item.audio_url);
+                          audio.play().catch(err => console.error("Audio play error:", err));
+                        }}
+                        title="Nghe phát âm"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          padding: '2px',
+                          lineHeight: 1
+                        }}
+                      >
+                        🔊
+                      </button>
+                    )}
+                  </div>
                   <button className="btn-remove-vocab" onClick={() => removeWord(item.word)}>🗑</button>
                 </div>
-                <span className="vocab-ipa">{item.ipa}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <span className="vocab-ipa">{item.ipa}</span>
+                  {item.part_of_speech && (
+                    <span className="popover-pos-badge" style={{ margin: 0, fontSize: '9px', padding: '1px 4px' }}>
+                      {item.part_of_speech}
+                    </span>
+                  )}
+                </div>
                 <p className="vocab-translation">{item.translation}</p>
               </div>
             ))}
