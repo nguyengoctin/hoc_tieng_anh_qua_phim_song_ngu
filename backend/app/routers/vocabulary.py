@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from models.schemas import VocabRequest
-from database import db
+from app.models.schemas import VocabRequest
+from app.database import db
 
 router = APIRouter(prefix="/api/vocabulary", tags=["vocabulary"])
 

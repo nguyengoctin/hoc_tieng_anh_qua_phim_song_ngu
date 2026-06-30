@@ -1,8 +1,8 @@
 import json
 from fastapi import APIRouter, HTTPException
-from models.schemas import ExplainRequest
-from database import db
-from config import GEMINI_API_KEY
+from app.models.schemas import ExplainRequest
+from app.database import db
+from app.config import GEMINI_API_KEY
 
 router = APIRouter(prefix="/api/explain", tags=["explain"])
 

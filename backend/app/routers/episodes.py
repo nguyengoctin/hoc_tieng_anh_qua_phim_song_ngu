@@ -1,6 +1,6 @@
 import os
 from fastapi import APIRouter
-from config import VIDEOS_DIR
+from app.config import VIDEOS_DIR
 
 router = APIRouter(prefix="/api/episodes", tags=["episodes"])
 

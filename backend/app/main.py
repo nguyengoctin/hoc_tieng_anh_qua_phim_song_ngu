@@ -3,9 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import VIDEOS_DIR, SUBTITLES_DIR
-from database import db
-from routers import episodes, vocabulary, subtitles, explain
+from app.config import VIDEOS_DIR, SUBTITLES_DIR
+from app.database import db
+from app.routers import episodes, vocabulary, subtitles, explain
 
 # Khởi tạo SQLite database
 db.init_db()

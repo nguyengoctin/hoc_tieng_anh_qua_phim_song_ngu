@@ -1,8 +1,8 @@
 import os
 from fastapi import APIRouter, HTTPException
-from models.schemas import SubtitleUpdateSchema
-from config import SUBTITLES_DIR
-from services.subtitle_service import parse_vtt_content, format_vtt_time
+from app.models.schemas import SubtitleUpdateSchema
+from app.config import SUBTITLES_DIR
+from app.services.subtitle_service import parse_vtt_content, format_vtt_time
 
 router = APIRouter(prefix="/api/subtitles", tags=["subtitles"])
 
