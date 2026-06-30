@@ -7,6 +7,12 @@
 
 Ứng dụng hỗ trợ học tiếng Anh giao tiếp qua phim bộ song ngữ thông qua hệ thống phụ đề tương tác, sửa đồng bộ lệch thời gian (Offset Adjuster), kiểm tra từ vựng (Cloze Test) và giải nghĩa ngữ cảnh bằng AI (Gemini 2.5 Flash API).
 
+## 📺 Video Demo Hoạt Động
+<video width="100%" controls>
+  <source src="docs/demo_video.webm" type="video/webm">
+  Trình duyệt của bạn không hỗ trợ phát video WebM.
+</video>
+
 ---
 
 ## ⚡ Khởi Chạy Nhanh (Quick Start)
