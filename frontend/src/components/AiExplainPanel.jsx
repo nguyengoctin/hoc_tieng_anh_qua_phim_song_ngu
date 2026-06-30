@@ -88,29 +88,38 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
             {/* Google-Style Dictionary Card Layout */}
             <div className="google-dict-card">
               <div className="google-dict-meta">
-                {aiPanel.data.tone && (
+                {aiPanel.data?.tone && (
                   <span className="google-tone-badge">{aiPanel.data.tone}</span>
                 )}
                 <span className="google-dict-type">câu thoại</span>
               </div>
 
-              {aiPanel.data.definition && (
+              {(aiPanel.data?.definition || aiPanel.data?.meaning) && (
                 <div className="google-dict-definition">
                   <span className="google-number">1.</span>
-                  <span className="google-def-text">{parseMarkdown(aiPanel.data.definition)}</span>
+                  <span className="google-def-text">
+                    {parseMarkdown(aiPanel.data.definition || aiPanel.data.meaning)}
+                  </span>
                 </div>
               )}
 
-              {aiPanel.data.key_vocabulary && (
+              {(aiPanel.data?.key_vocabulary || aiPanel.data?.tip || aiPanel.data?.idiom_slang) && (
                 <div className="google-dict-vocab">
-                  <strong>💡 Focus:</strong> <span>{parseMarkdown(aiPanel.data.key_vocabulary)}</span>
+                  <strong>💡 Focus:</strong>{' '}
+                  <span>
+                    {parseMarkdown(
+                      aiPanel.data.key_vocabulary || 
+                      aiPanel.data.tip || 
+                      aiPanel.data.idiom_slang
+                    )}
+                  </span>
                 </div>
               )}
 
-              {aiPanel.data.example && (
+              {aiPanel.data?.example && (
                 <div className="google-dict-example-box">
                   <p className="google-example-eng">"{aiPanel.data.example}"</p>
-                  {aiPanel.data.example_translation && (
+                  {aiPanel.data?.example_translation && (
                     <p className="google-example-vi">→ {aiPanel.data.example_translation}</p>
                   )}
                 </div>
