@@ -1,44 +1,75 @@
-# Dự Án Học Tiếng Anh Qua Phim Friends (Friends English Center)
+# 🎓 Friends English Center (Học Tiếng Anh Qua Phim Song Ngữ)
 
-Chào mừng bạn đến với dự án **Học Tiếng Anh Qua Phim Friends**. Đây là một ứng dụng web giúp người dùng vừa xem phim Friends vừa học tiếng Anh thông qua hệ thống phụ đề song ngữ tương tác, tra từ điển nhanh và lưu trữ từ vựng.
+Ứng dụng web tương tác thông minh hỗ trợ học tiếng Anh giao tiếp thông qua phim bộ truyền hình sitcom đình đám *Friends*. Dự án tích hợp các công nghệ xử lý luồng đa phương tiện (Video/Audio streaming), đồng bộ hóa phụ đề thời gian thực (Subtitle Synchronization Engine), phương pháp đục lỗ từ vựng (Cloze Test) và trợ lý giáo viên AI (Gemini 2.5 Flash API).
 
 ---
 
-## 📂 Cấu Trúc Dự Án (Project Structure)
+## 🏗️ Kiến Trúc Hệ Thống (System Architecture)
 
-Dự án được chia thành hai phần chính: **Backend (FastAPI)** và **Frontend (React/Vite)** cùng với các tài nguyên phim và phụ đề đi kèm.
+Dự án được xây dựng theo mô hình Client-Server tách biệt, tối ưu cho việc truyền phát đa phương tiện nội bộ (Local Media Center) với hiệu suất cực cao.
 
 ```text
-hoc_tieng_anh_qua_friends/
-├── backend/                  # FastAPI Backend code
-│   └── app/
-│       └── main.py           # File chạy chính của server API
-├── frontend/                 # React + Vite Frontend code
-│   ├── src/                  # Mã nguồn ứng dụng giao diện
-│   └── package.json
-├── data/                     # Thư mục chứa tài nguyên phim & phụ đề
-│   ├── videos/
-│   │   └── friends/
-│   │       ├── season_01/    # Chứa video Season 1 (.mp4)
-│   │       └── season_02/    # Chứa video Season 2 (.mp4)
-│   └── subtitles/
-│       └── bilingual/
-│           └── VTT/
-│               └── friends/
-│                   ├── season_01/ # Phụ đề song ngữ Season 1 (.vtt)
-│                   └── season_02/ # Phụ đề song ngữ Season 2 (.vtt)
-├── scripts/                  # Các script tự động hóa tiện ích
-│   ├── download_season.py    # Script duy nhất tải phim và phụ đề
-│   └── clean_subtitles.py    # Dọn dẹp & chuẩn hóa định dạng phụ đề
-├── run_project.sh            # Script khởi chạy nhanh toàn bộ dự án
-└── README.md                 # Hướng dẫn này
+                           [ CLIENT SIDE (React + Vite) ]
+                                         │
+        ┌────────────────────────────────┴────────────────────────────────┐
+        ▼ (UI Controls)                                                   ▼ (Static Assets)
+  [ UI Components ]                                              [ Media HTML5 Player ]
+  ├── Sidebar (Script / Vocab / Saved)                                    │
+  ├── AiExplainPanel (Google Dict UI)                                     │
+  ├── DictionaryPopover (Instant Translation)                             │
+  └── StudyControls (Cloze / Resume Delay)                                │
+        │                                                                 │
+        └───────────────┬───────────────────────────────┐                 │
+                        │ HTTP Requests (JSON)          │ Direct Video Stream  
+                        ▼                               ▼                 ▼
+             [ BACKEND API (FastAPI) ] ◄────────────────┴────────► [ Media Assets ]
+                        │                                          ├── Videos (.mp4)
+         ┌──────────────┴──────────────┐                           └── Subtitles (.vtt)
+         ▼ Read / Write Cache          ▼ AI Agent Prompt
+   [ SQLite Database ]         [ Gemini Model 2.5 Flash ]
+   (learning.db)
 ```
+
+### 1. Kiến trúc mã nguồn Backend (FastAPI)
+*   **`backend/app/main.py`**: Điểm khởi chạy API và khai báo các Router. Mount trực tiếp static folder `/videos` và `/subtitles` để truyền luồng media chất lượng cao về client thông qua cơ chế hỗ trợ Range Requests của HTTP/1.1 (tua video cực mượt).
+*   **`backend/app/database/db.py`**: Service điều phối database SQLite (`learning.db`). Chịu trách nhiệm khởi tạo bảng và thực hiện các giao thức CRUD cho từ vựng và bộ nhớ đệm AI.
+
+### 2. Kiến trúc mã nguồn Frontend (React)
+Frontend được chia nhỏ thành các component độc lập (Modular Components) giúp tăng khả năng bảo trì:
+*   **`frontend/src/App.jsx`**: Controller trung tâm quản lý State, điều phối video player và xử lý hệ thống phím tắt bàn phím (Keyboard Shortcuts).
+*   **`frontend/src/components/Sidebar.jsx`**: Sidebar chứa danh sách kịch bản (Script), từ vựng đã lưu (Vocab), các câu thoại ghi nhớ (Saved Sentences), và bộ chọn Phim/Season/Tập.
+*   **`frontend/src/components/AiExplainPanel.jsx`**: Panel hiển thị phân tích cấu trúc câu, nghĩa lóng (slang), ví dụ thực tế và nút thay thế phụ đề phim của Gemini.
+*   **`frontend/src/components/DictionaryPopover.jsx`**: Khung tra từ nhanh tích hợp phát âm IPA và audio khi nhấp chọn hoặc kéo thả bôi đen từ.
+*   **`frontend/src/components/StudyControls.jsx`**: Thanh cấu hình chế độ đục lỗ (Blanking) và thời gian ngưng tự nói (Shadowing Delay).
+
+---
+
+## 💡 Mổ Xẻ Các Tính Năng Đặc Biệt & Thuật Toán
+
+### 1. Thuật toán Đồng bộ Phụ đề (Subtitle Sync Adjuster)
+Hệ thống cho phép người dùng điều chỉnh độ lệch (offset) thời gian bắt đầu/kết thúc của từng câu thoại trực tiếp khi xem phim để sửa lỗi lệch phụ đề (vốn rất phổ biến ở các file phụ đề trên mạng):
+*   Khi người dùng bấm tăng/giảm thời gian (`+0.1s`, `-0.3s`, v.v.), client gửi payload tới API `/api/subtitles/update-segment`.
+*   Backend tiến hành phân tích file phụ đề WebVTT gốc bằng Python, điều chỉnh timestamp của dòng phụ đề đích, đồng thời **tự động co dãn thời gian** của câu thoại liền trước và liền sau để tránh tình trạng chồng lấn (Overlapping).
+*   File VTT được ghi đè trên ổ đĩa và client tự động re-parse nội dung mới để cập nhật UI tức thời không cần load lại.
+
+### 2. Hệ thống đục lỗ thông minh (Smart Cloze Test)
+*   Từ vựng được ẩn (đục lỗ thành dấu gạch dưới `_____`) một cách ngẫu nhiên có trọng số dựa trên độ khó thiết lập (`30%`, `50%`, `70%`, `100%`).
+*   **Quy tắc loại trừ thông minh**: Thuật toán tự động nhận diện và bỏ qua không đục lỗ đối với:
+    *   Tên nhân vật/danh từ riêng (Nhận diện bằng chữ viết hoa không nằm ở đầu câu).
+    *   Các từ cảm thán, đệm giao tiếp vô nghĩa (ví dụ: *oh, hey, um, uh, yeah, wow*).
+    *   Các âm thanh diễn hoạt trong ngoặc vuông (ví dụ: *[coughing], [screaming]*).
+*   Người dùng có thể nhấn phím `Tab` để lật mở từng từ bị đục lỗ một cách tuần tự.
+
+### 3. Caching kết quả giải thích AI (Gemini Cache)
+*   Để giảm tối đa thời gian chờ mạng và tiết kiệm quota gọi API Gemini (vốn giới hạn ở tài khoản miễn phí), ứng dụng sử dụng SQLite để làm Proxy Cache.
+*   Mỗi truy vấn giải thích câu thoại được mã hóa và lưu trữ trong bảng `ai_cache` với khóa chính là nội dung câu thoại tiếng Anh thô.
+*   Lần nhấn nút **✨ AI** tiếp theo cho cùng một câu thoại sẽ truy vấn SQLite và trả về kết quả ngay lập tức trong vòng `< 5ms`.
 
 ---
 
 ## 🛠️ Cài Đặt Ban Đầu (Setup & Installation)
 
-Yêu cầu hệ thống: Máy tính chạy Linux/macOS, đã cài đặt **Python 3** và **Node.js**.
+Yêu cầu máy cài sẵn: **Python 3** và **Node.js (phiên bản 18 trở lên)**.
 
 ### 1. Cài đặt Python Virtual Environment (Backend)
 ```bash
@@ -46,100 +77,61 @@ Yêu cầu hệ thống: Máy tính chạy Linux/macOS, đã cài đặt **Pytho
 python3 -m venv venv
 
 # Kích hoạt môi trường ảo
+# Trên Linux/macOS:
 source venv/bin/activate
+# Trên Windows (cmd):
+venv\Scripts\activate.bat
 
-# Cài đặt các thư viện cần thiết
-pip install fastapi uvicorn deep-translator
+# Cài đặt các thư viện phụ thuộc
+pip install fastapi uvicorn deep-translator google-genai python-dotenv
 ```
 
-### 2. Cài đặt các dependencies cho Frontend
+### 2. Cài đặt các thư viện Frontend
 ```bash
 cd frontend
 npm install
 cd ..
 ```
 
+### 3. Thiết lập API Key cho Trợ lý AI
+Tạo một file `.env` ở thư mục gốc của dự án (cùng cấp với thư mục `backend/` và `frontend/`) và điền API Key Gemini của bạn:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
 ---
 
-## 🚀 Khởi Chạy Ứng Dụng (Running the App)
+## 🚀 Khởi Chạy Ứng Dụng (Quick Start)
 
-Chỉ cần chạy một script duy nhất ở thư mục gốc để khởi động đồng thời cả Backend và Frontend:
+Dự án cung cấp các script tự động hóa khởi động đồng thời cả frontend và backend trên cả hai nền tảng:
 
+### 💻 Trên Windows
+Chỉ cần nhấp đúp (Double-click) vào file hoặc chạy qua CMD:
+```cmd
+run_project.bat
+```
+
+### 🍎 Trên Linux / macOS
+Cấp quyền và khởi chạy file shell:
 ```bash
-# Cấp quyền thực thi nếu chạy lần đầu
 chmod +x run_project.sh
-
-# Chạy dự án
 ./run_project.sh
 ```
 
-Sau khi chạy thành công:
-* **Giao diện người dùng (Frontend)**: [http://localhost:5173](http://localhost:5173)
-* **Backend API**: [http://localhost:8000](http://localhost:8000)
-* Nhấn `Ctrl + C` tại cửa sổ Terminal để dừng cả hai server một cách an toàn.
+*   **Giao diện ứng dụng**: [http://localhost:5173](http://localhost:5173)
+*   **Backend API**: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## 📥 Hướng Dẫn Tải Phim Và Phụ Đề Song Ngữ Tự Động (Movie Downloader Guide)
+## ⌨️ Phím Tắt Tiện Dụng Khi Học (Keyboard Shortcuts)
 
-Chúng ta có một script duy nhất chịu trách nhiệm cào (scrape) dữ liệu từ nguồn học tiếng Anh Toomva, tự động ghép phụ đề Anh-Việt và tải video chất lượng cao về máy.
+Để tối ưu hóa phản xạ nghe nói (Shadowing) mà không cần chạm vào chuột:
 
-### Cách sử dụng script `download_season.py`
-
-Kích hoạt môi trường ảo trước khi chạy:
-```bash
-source venv/bin/activate
-```
-
-Chạy script với các tùy chọn tương ứng:
-
-#### 1. Tải và tiếp tục tải cho Season 2 (Mặc định)
-Nếu quá trình tải bị gián đoạn, script sẽ tự động bỏ qua các tập đã tải xong và chỉ tải tiếp các tập còn thiếu.
-```bash
-python3 scripts/download_season.py -s 2
-```
-
-#### 2. Tải toàn bộ phim của Season 1
-```bash
-python3 scripts/download_season.py -s 1
-```
-
-#### 3. Tải tất cả các Season sẵn có (1 và 2)
-```bash
-python3 scripts/download_season.py -s all
-```
-
-#### 4. Tải một mùa phim bất kỳ bằng URL Toomva
-Bạn có thể tải bất kỳ mùa phim nào khác của bất kỳ bộ phim nào từ Toomva bằng cách tìm URL của tập đầu tiên thuộc mùa đó, chỉ định tên phim và số mùa tương ứng:
-```bash
-python3 scripts/download_season.py -w <tên_phim> -s <số_mùa> -u "<url_tập_đầu_tiên>"
-```
-
-**Ví dụ tải Friends Season 3:**
-```bash
-python3 scripts/download_season.py -w friends -s 3 -u "https://toomva.com/video/friends-season-3-1-the-one-with-the-princess-leia-fantasy=593"
-```
-
-**Ví dụ tải Silicon Valley Season 1:**
-```bash
-python3 scripts/download_season.py -w silicon_valley -s 1 -u "https://toomva.com/video/silicon-valley-season-1=16740"
-```
-
-### Nguyên lý hoạt động của script:
-1. **Lấy HTML**: Truy cập trang web tập phim trên Toomva để trích xuất liên kết video `.mp4` và hai file phụ đề gốc (Tiếng Anh & Tiếng Việt).
-2. **Gộp phụ đề song ngữ**:
-   - Tải file phụ đề tiếng Anh và tiếng Việt `.vtt` thô về bộ nhớ tạm.
-   - Ghép cặp từng câu nói tiếng Anh với câu dịch tiếng Việt có mốc thời gian (timestamp) trùng khớp nhất.
-   - Ghi file phụ đề song ngữ hoàn chỉnh trực tiếp vào thư mục dữ liệu tương ứng.
-3. **Tải video**: Tải file video `.mp4` trực tiếp từ máy chủ đám mây của Toomva về thư mục video tương ứng của Season đó.
-
----
-
-## 🧼 Dọn Dẹp Và Làm Sạch Phụ Đề (Subtitle Cleaner)
-
-Để loại bỏ các quảng cáo chèn trong phụ đề hoặc loại bỏ các thẻ HTML lỗi định dạng làm xấu giao diện xem phim, bạn có thể chạy script dọn dẹp phụ đề:
-
-```bash
-python3 scripts/clean_subtitles.py
-```
-Script này sẽ quét qua toàn bộ thư mục phụ đề `.vtt`, định dạng lại và đánh số thứ tự phân đoạn từ 1 đến hết một cách chuẩn hóa.
+| Phím Tắt | Chức Năng | Mô tả |
+| :--- | :--- | :--- |
+| **`Space`** | Play / Pause | Dừng hoặc phát tiếp video. |
+| **`S`** / **`R`** | Repeat Sentence | Phát lại từ đầu câu thoại đang hiển thị. |
+| **`A`** | Previous Sentence | Nhảy lùi về câu thoại phía trước. |
+| **`D`** | Next Sentence | Nhảy tiến đến câu thoại kế tiếp. |
+| **`Tab`** | Reveal Cloze | Lật mở nhanh từ bị đục lỗ hiện tại khi video đang dừng. |
+| **`←` / `→`** | Seek 10s | Tua lùi / Tua tiến nhanh 10 giây. |
