@@ -104,15 +104,23 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
               )}
 
               {(aiPanel.data?.key_vocabulary || aiPanel.data?.tip || aiPanel.data?.idiom_slang) && (
-                <div className="google-dict-vocab">
-                  <strong>💡 Focus:</strong>{' '}
-                  <span>
-                    {parseMarkdown(
-                      aiPanel.data.key_vocabulary || 
-                      aiPanel.data.tip || 
-                      aiPanel.data.idiom_slang
-                    )}
-                  </span>
+                <div className="google-dict-vocab" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <strong>💡 Focus:</strong>
+                  {(() => {
+                    const vocabData = aiPanel.data.key_vocabulary || aiPanel.data.tip || aiPanel.data.idiom_slang;
+                    if (typeof vocabData === 'object' && vocabData !== null) {
+                      return (
+                        <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px', listStyleType: 'disc' }}>
+                          {Object.entries(vocabData).map(([k, v], idx) => (
+                            <li key={idx} style={{ marginBottom: '8px', lineHeight: '1.4', fontSize: '13px' }}>
+                              <strong style={{ color: '#ffca4a' }}>{k}</strong>: {parseMarkdown(v)}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }
+                    return <span>{parseMarkdown(vocabData)}</span>;
+                  })()}
                 </div>
               )}
 
