@@ -22,7 +22,7 @@ function App() {
 
   
   // Custom Controls and UI Settings
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('script'); // 'script' | 'vocab'
   const [savedVocab, setSavedVocab] = useState([]);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
