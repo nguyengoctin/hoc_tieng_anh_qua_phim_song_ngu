@@ -887,10 +887,29 @@ function App() {
   // Helper đơn giản để parse in đậm (**) và in nghiêng (*) từ text trả về của AI
   const parseMarkdown = (text) => {
     if (!text) return '';
+    
+    // Nếu text là Object/Array (do Gemini trả về sai định dạng)
+    if (typeof text !== 'string') {
+      try {
+        if (typeof text === 'object') {
+          // Chuyển object {key: value} thành dạng chuỗi "key: value"
+          text = Object.entries(text)
+            .map(([k, v]) => `**${k}**: ${v}`)
+            .join('\n');
+        } else {
+          text = String(text);
+        }
+      } catch (e) {
+        text = String(text);
+      }
+    }
+
     // Xử lý **text** -> <strong>text</strong>
     let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // Xử lý *text* -> <em>text</em>
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Xử lý xuống dòng thành thẻ <br/>
+    html = html.replace(/\n/g, '<br/>');
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
