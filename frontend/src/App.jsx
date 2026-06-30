@@ -1470,13 +1470,37 @@ function App() {
                       } 
                     },
                     { 
-                      element: '.study-controls-bar', 
+                      element: '.tour-auto-edit', 
                       popover: { 
-                        title: '⚡ Công cụ hỗ trợ học tập chuyên sâu', 
-                        description: 'Các tính năng nâng cao giúp bạn học chủ động:\n' +
-                          '• Tự động sửa: Tự động mở và cuộn kịch bản khớp theo mốc thời gian đang chạy, giúp bạn theo dõi song song hoặc sửa đổi tức thì.\n' +
-                          '• Tự dừng sau mỗi câu: Video tự động dừng khi kết thúc câu thoại. Bạn có thể cài đặt độ trễ (30%, 50% câu hoặc dừng hẳn) để có thời gian bắt chước nhại giọng (Shadowing) nhân vật.\n' +
-                          '• Đục lỗ (Cloze Test): Che bớt các từ trong phụ đề tiếng Anh theo tỷ lệ (30% - 100%). Hãy tự đoán từ và click vào khoảng trống để mở từ đó ra, rất tốt để rèn phản xạ nghe.',
+                        title: '🔄 Tự động sửa phụ đề', 
+                        description: 'Bật tính năng này để kịch bản bên phải tự động cuộn và hiển thị panel chỉnh sửa phụ đề bám sát câu thoại đang phát. Giúp bạn phát hiện và sửa lỗi lệch phụ đề tức thời.',
+                        side: "top", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.tour-watched-status', 
+                      popover: { 
+                        title: '✓ Đánh dấu đã học xong', 
+                        description: 'Tích chọn khi bạn đã hoàn thành việc xem và học tập phim này để dễ dàng theo dõi lộ trình học tập của mình.',
+                        side: "top", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.tour-shadowing', 
+                      popover: { 
+                        title: '🗣️ Tự dừng sau mỗi câu (Luyện Shadowing)', 
+                        description: 'Video tự động dừng khi kết thúc câu thoại. Bạn có thể chỉnh thời gian chờ (30%, 50% độ dài câu hoặc dừng hẳn) để có đủ thời gian bắt chước và nhại giọng nói theo nhân vật trước khi tự động chạy tiếp.',
+                        side: "top", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.tour-blanking', 
+                      popover: { 
+                        title: '🧩 Đục lỗ (Cloze Test) luyện phản xạ', 
+                        description: 'Ẩn bớt các từ trong phụ đề tiếng Anh theo các cấp độ từ 30% đến 100%. Hãy tự đoán từ và click chuột (hoặc nhấn phím Tab) để mở từ đó ra, giúp rèn luyện khả năng ghi nhớ từ vựng.',
                         side: "top", 
                         align: 'start' 
                       } 
@@ -1485,7 +1509,7 @@ function App() {
                       element: '.btn-help-bottom-toggle', 
                       popover: { 
                         title: '⌨️ Hệ thống Phím tắt Phản xạ', 
-                        description: '• Space: Tạm dừng / Phát video\n• Phím S: Phát lại câu thoại hiện tại\n• Phím A / D: Lùi về câu trước hoặc tiến tới câu sau nhanh chóng.',
+                        description: '• Space: Tạm dừng / Phát video\n• Phím S: Phát lại câu thoại hiện tại\n• Phím A / D: Lùi về câu trước hoặc tiến tới câu sau nhanh chóng.\n• Phím Tab: Mở từ bị đục lỗ tiếp theo, hoặc tiếp tục phát video khi đã mở hết.',
                         side: "top", 
                         align: 'end' 
                       } 
