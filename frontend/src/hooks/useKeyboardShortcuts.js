@@ -27,6 +27,13 @@ export default function useKeyboardShortcuts({
         return;
       }
 
+      // Ignore repeating keys (holding down keys) for sentence navigation, play/pause and tab
+      if (e.repeat) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+          return;
+        }
+      }
+
       const video = videoRef.current;
       if (!video) return;
 
@@ -36,10 +43,12 @@ export default function useKeyboardShortcuts({
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        // Phím S/R: Phát lại câu đang hiển thị — tìm hoàn toàn theo video.currentTime để tránh stale state
-        const t = video.currentTime;
-        const subToRepeat = subtitles.find(s => t >= s.start && t <= s.end)
-          || [...subtitles].reverse().find(s => s.end <= t);
+        e.preventDefault();
+        // Phím S/R: Phát lại câu đang hiển thị — ưu tiên dùng subToUse để tránh sai lệch do trôi đầu phát
+        const subToRepeat = subToUse 
+          || subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= video.currentTime);
+        
         if (subToRepeat) {
           if (resumeTimeoutRef.current) { clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
           setPausedSub(null);
@@ -47,14 +56,20 @@ export default function useKeyboardShortcuts({
           revealedIndicesRef.current = [];
           seekTargetRef.current = subToRepeat.start; // bỏ qua tất cả subtitle kết thúc tại/trước đầu câu mục tiêu
           lastSubIndexRef.current = subToRepeat.start;
-          video.currentTime = subToRepeat.start;
-          video.play().then(() => setIsPlaying(true));
+          video.currentTime = subToRepeat.start + 0.02; // Cộng thêm 20ms để tránh lệch điểm dừng về câu trước
+          video.play().then(() => {
+            setIsPlaying(true);
+          }).catch(err => {
+            console.error("[Hotkey S] Play promise rejected:", err);
+          });
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        // Phím A: Lùi về câu trước — tìm hoàn toàn theo video.currentTime
-        const t = video.currentTime;
-        const curSub = subtitles.find(s => t >= s.start && t <= s.end)
-          || [...subtitles].reverse().find(s => s.end <= t);
+        e.preventDefault();
+        // Phím A: Lùi về câu trước — ưu tiên dùng câu đang hiển thị làm mốc
+        const curSub = subToUse 
+          || subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= video.currentTime);
+        
         if (curSub) {
           const idx = subtitles.findIndex(s => s.start === curSub.start);
           if (idx > 0) {
@@ -66,15 +81,17 @@ export default function useKeyboardShortcuts({
             seekTargetRef.current = targetSub.start;
             lastSubIndexRef.current = targetSub.start;
             setActiveSidebarSub(targetSub);
-            video.currentTime = targetSub.start;
+            video.currentTime = targetSub.start + 0.02; // Cộng thêm 20ms
             video.play().then(() => setIsPlaying(true));
           }
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        // Phím D: Tiến câu tiếp theo — tìm hoàn toàn theo video.currentTime
-        const t = video.currentTime;
-        const curSub = subtitles.find(s => t >= s.start && t <= s.end)
-          || [...subtitles].reverse().find(s => s.end <= t);
+        e.preventDefault();
+        // Phím D: Tiến câu tiếp theo — ưu tiên dùng câu đang hiển thị làm mốc
+        const curSub = subToUse 
+          || subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= video.currentTime);
+        
         if (curSub) {
           const idx = subtitles.findIndex(s => s.start === curSub.start);
           if (idx !== -1 && idx < subtitles.length - 1) {
@@ -86,13 +103,15 @@ export default function useKeyboardShortcuts({
             seekTargetRef.current = targetSub.start;
             lastSubIndexRef.current = targetSub.start;
             setActiveSidebarSub(targetSub);
-            video.currentTime = targetSub.start;
+            video.currentTime = targetSub.start + 0.02; // Cộng thêm 20ms
             video.play().then(() => setIsPlaying(true));
           }
         }
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
         video.currentTime = Math.max(0, video.currentTime - 10);
       } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
         video.currentTime = Math.min(duration, video.currentTime + 10);
       } else if (e.key === 'Tab') {
         e.preventDefault();
@@ -106,7 +125,6 @@ export default function useKeyboardShortcuts({
             if (allRevealed) {
               // If all are already revealed, pressing Tab again resumes the video!
               if (video && video.paused) {
-                setPausedSub(null); // clear lock before playing
                 video.play().then(() => setIsPlaying(true));
               }
             } else {

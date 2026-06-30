@@ -9,6 +9,7 @@ export default function VideoPlayer({
   videoRef,
   containerRef,
   currentEpisode,
+  subtitles,
   currentTime,
   setCurrentTime,
   duration,
@@ -30,6 +31,7 @@ export default function VideoPlayer({
   showSidebar,
   setShowSidebar,
   pausedSub,
+  pausedSubRef,
   activeSub,
   setPausedSub,
   resumeData,
@@ -84,8 +86,15 @@ export default function VideoPlayer({
           }}
           onPause={() => {
             setIsPlaying(false);
-            if (videoRef.current && activeSub) {
-              setPausedSub(activeSub);
+            // Only capture the subtitle if pausedSub is not already locked (e.g., manual pause)
+            // AND the video is not currently seeking (to prevent capturing old/intermediate subs during seeks).
+            if (videoRef.current && !videoRef.current.seeking && subtitles && !pausedSubRef.current) {
+              const t = videoRef.current.currentTime;
+              const currentSub = subtitles.find(s => t >= s.start && t <= s.end)
+                || subtitles.find(s => t >= s.end && t <= s.end + 0.5);
+              if (currentSub) {
+                setPausedSub(currentSub);
+              }
             }
           }}
           onLoadedMetadata={() => {
@@ -131,7 +140,7 @@ export default function VideoPlayer({
       {resumeData && (
         <div className="resume-toast-banner" onClick={(e) => e.stopPropagation()}>
           <span>Đã khôi phục vị trí cũ: {resumeData.formatted}</span>
-          <button className="btn-resume-restart" onClick={() => {
+          <button className="btn-resume-restart" tabIndex="-1" onClick={() => {
             if (videoRef.current) {
               videoRef.current.currentTime = 0;
               const saved = localStorage.getItem('resume_positions');
@@ -200,13 +209,13 @@ export default function VideoPlayer({
 
       <div className={`video-controls ${controlsVisible ? 'visible' : ''}`}>
         <div className="controls-left">
-          <button className="btn-ctrl" onClick={togglePlay}>
+          <button className="btn-ctrl" tabIndex="-1" onClick={togglePlay}>
             {isPlaying ? <Pause size={16} fill="#dfdfdf" /> : <Play size={16} fill="#dfdfdf" />}
           </button>
-          <button className="btn-ctrl" onClick={() => skipTime(-10)} title="Tua lại 10s">
+          <button className="btn-ctrl" tabIndex="-1" onClick={() => skipTime(-10)} title="Tua lại 10s">
             <RotateCcw size={16} /> <span style={{fontSize: '11px', marginLeft: '4px'}}>10s</span>
           </button>
-          <button className="btn-ctrl" onClick={() => skipTime(10)} title="Tua tiếp 10s">
+          <button className="btn-ctrl" tabIndex="-1" onClick={() => skipTime(10)} title="Tua tiếp 10s">
             <RotateCw size={16} /> <span style={{fontSize: '11px', marginLeft: '4px'}}>10s</span>
           </button>
           <span className="time-display">
@@ -221,6 +230,7 @@ export default function VideoPlayer({
               value={playbackSpeed} 
               onChange={(e) => changeSpeed(parseFloat(e.target.value))}
               className="select-speed"
+              tabIndex="-1"
               onFocus={() => setIsSpeedFocused(true)}
               onBlur={() => setIsSpeedFocused(false)}
             >
@@ -236,6 +246,7 @@ export default function VideoPlayer({
             <button 
               className={`btn-ctrl btn-cc ${showEnglish || showVietnamese ? 'active' : ''}`}
               onClick={() => setShowSubMenu(!showSubMenu)}
+              tabIndex="-1"
               title="Cài đặt phụ đề"
             >
               <Subtitles size={16} style={{ marginRight: '6px' }} />
@@ -250,6 +261,7 @@ export default function VideoPlayer({
                     <input 
                       type="checkbox" 
                       checked={showEnglish} 
+                      tabIndex="-1"
                       onChange={() => setShowEnglish(!showEnglish)} 
                     />
                     <span className="switch-slider"></span>
@@ -261,6 +273,7 @@ export default function VideoPlayer({
                     <input 
                       type="checkbox" 
                       checked={showVietnamese} 
+                      tabIndex="-1"
                       onChange={() => setShowVietnamese(!showVietnamese)} 
                     />
                     <span className="switch-slider"></span>
@@ -273,6 +286,7 @@ export default function VideoPlayer({
           <button 
             className={`btn-ctrl btn-sidebar-toggle ${showSidebar ? 'active' : ''}`}
             onClick={() => setShowSidebar(!showSidebar)}
+            tabIndex="-1"
             title="Bật/Tắt kịch bản phim"
           >
             <Menu size={16} style={{ marginRight: '6px' }} />

@@ -22,6 +22,11 @@ function App() {
   const [subtitles, setSubtitles] = useState([]);
   const [activeSub, setActiveSub] = useState(null);
   const [pausedSub, setPausedSub] = useState(null);
+  const pausedSubRef = useRef(null);
+  const updatePausedSub = (val) => {
+    pausedSubRef.current = val;
+    setPausedSub(val);
+  };
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -156,9 +161,9 @@ function App() {
   const playSavedSentence = (item) => {
     if (currentEpisode && currentEpisode.id !== item.episodeId) {
       handleEpisodeChange(item.episodeId);
-      localStorage.setItem('pending_seek_time', item.start.toString());
+      localStorage.setItem('pending_seek_time', (item.start + 0.02).toString());
     } else if (videoRef.current) {
-      videoRef.current.currentTime = item.start;
+      videoRef.current.currentTime = item.start + 0.02; // Cộng thêm 20ms để tránh lệch điểm dừng về câu trước
       if (!isPlaying) {
         videoRef.current.play().then(() => setIsPlaying(true));
       }
@@ -285,18 +290,14 @@ function App() {
       .catch(err => console.error("Error loading watched progress:", err));
   }, []);
 
-  // Reset blanking states only when we transition to a different subtitle segment
-  useEffect(() => {
-    const subToUse = pausedSub || activeSub;
-    if (subToUse) {
-      if (lastResetSubIdRef.current !== subToUse.start) {
-        lastResetSubIdRef.current = subToUse.start;
-        setRevealBlanked(false);
-        setRevealedIndices([]);
-        revealedIndicesRef.current = [];
-      }
-    }
-  }, [activeSub, pausedSub]);
+  // Reset blanking states synchronously during render when we transition to a different subtitle segment
+  const subToUse = pausedSub || activeSub;
+  if (subToUse && lastResetSubIdRef.current !== subToUse.start) {
+    lastResetSubIdRef.current = subToUse.start;
+    setRevealBlanked(false);
+    setRevealedIndices([]);
+    revealedIndicesRef.current = [];
+  }
 
   // Sync refs to avoid stale closure in handleTimeUpdate
   useEffect(() => { autoPauseOnBlankRef.current = autoPauseOnBlank; }, [autoPauseOnBlank]);
@@ -412,6 +413,12 @@ function App() {
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (!video) return;
+    
+    if (video.seeking) {
+      setActiveSub(null);
+      return;
+    }
+    
     const time = video.currentTime;
     setCurrentTime(time);
 
@@ -455,7 +462,7 @@ function App() {
       const endedSub = subtitles.find(s => time >= s.end && time <= s.end + 0.5);
       if (endedSub && endedSub.end > seekTargetRef.current && lastSubIndexRef.current !== endedSub.end) {
         lastSubIndexRef.current = endedSub.end;
-        setPausedSub(endedSub);
+        updatePausedSub(endedSub);
         setActiveSidebarSub(endedSub);
         video.pause();
         setIsPlaying(false);
@@ -472,7 +479,7 @@ function App() {
         }
 
         if (Number(shadowingDelay) === 0) {
-          setPausedSub(null);
+          updatePausedSub(null);
           video.play().then(() => setIsPlaying(true));
           return;
         }
@@ -487,7 +494,7 @@ function App() {
         if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
         resumeTimeoutRef.current = setTimeout(() => {
           if (videoRef.current) {
-            setPausedSub(null);
+            updatePausedSub(null);
             videoRef.current.play().then(() => setIsPlaying(true));
           }
         }, totalPauseSeconds * 1000);
@@ -714,7 +721,7 @@ function App() {
       
       if (videoRef.current.paused) {
         const newSub = subtitles.find(s => targetTime >= s.start && targetTime <= s.end);
-        setPausedSub(newSub || null);
+        updatePausedSub(newSub || null);
       }
     }
   };
@@ -775,7 +782,7 @@ function App() {
     activeSidebarSub,
     revealedIndicesRef,
     setRevealedIndices,
-    setPausedSub,
+    setPausedSub: updatePausedSub,
     setIsPlaying,
     togglePlay,
     resumeTimeoutRef,
@@ -793,6 +800,7 @@ function App() {
             videoRef={videoRef}
             containerRef={containerRef}
             currentEpisode={currentEpisode}
+            subtitles={subtitles}
             currentTime={currentTime}
             setCurrentTime={setCurrentTime}
             duration={duration}
@@ -814,8 +822,9 @@ function App() {
             showSidebar={showSidebar}
             setShowSidebar={setShowSidebar}
             pausedSub={pausedSub}
+            pausedSubRef={pausedSubRef}
             activeSub={activeSub}
-            setPausedSub={setPausedSub}
+            setPausedSub={updatePausedSub}
             resumeData={resumeData}
             setResumeData={setResumeData}
             clickedWord={clickedWord}
@@ -1061,7 +1070,7 @@ function App() {
           currentEpisode={currentEpisode}
           activeSidebarSub={activeSidebarSub}
           videoRef={videoRef}
-          setPausedSub={setPausedSub}
+          setPausedSub={updatePausedSub}
           setRevealedIndices={setRevealedIndices}
           setIsPlaying={setIsPlaying}
           formatTime={formatTime}

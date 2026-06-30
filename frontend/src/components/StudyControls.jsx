@@ -24,6 +24,7 @@ export default function StudyControls({
           <input 
             type="checkbox"
             checked={followActiveSubtitleSync}
+            tabIndex="-1"
             onChange={(e) => {
               setFollowActiveSubtitleSync(e.target.checked);
               if (e.target.checked) {
@@ -47,6 +48,7 @@ export default function StudyControls({
             value={shadowingDelay} 
             onChange={(e) => setShadowingDelay(parseFloat(e.target.value))}
             className="select-modern"
+            tabIndex="-1"
           >
             <option value="-99">Tắt</option>
             <option value="0">0%</option>
@@ -66,11 +68,11 @@ export default function StudyControls({
         <div className="blank-level-selectors-modern tour-blanking">
           <span className="setting-label">Đục lỗ</span>
           <div className="segmented-controls">
-            <button className={`btn-segment ${blankLevel === 0 ? 'active' : ''}`} onClick={() => setBlankLevel(0)}>Tắt</button>
-            <button className={`btn-segment ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => setBlankLevel(0.3)}>30%</button>
-            <button className={`btn-segment ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => setBlankLevel(0.5)}>50%</button>
-            <button className={`btn-segment ${blankLevel === 0.7 ? 'active' : ''}`} onClick={() => setBlankLevel(0.7)}>70%</button>
-            <button className={`btn-segment ${blankLevel === 1.0 ? 'active' : ''}`} onClick={() => setBlankLevel(1.0)}>100%</button>
+            <button className={`btn-segment ${blankLevel === 0 ? 'active' : ''}`} tabIndex="-1" onClick={() => setBlankLevel(0)}>Tắt</button>
+            <button className={`btn-segment ${blankLevel === 0.3 ? 'active' : ''}`} tabIndex="-1" onClick={() => setBlankLevel(0.3)}>30%</button>
+            <button className={`btn-segment ${blankLevel === 0.5 ? 'active' : ''}`} tabIndex="-1" onClick={() => setBlankLevel(0.5)}>50%</button>
+            <button className={`btn-segment ${blankLevel === 0.7 ? 'active' : ''}`} tabIndex="-1" onClick={() => setBlankLevel(0.7)}>70%</button>
+            <button className={`btn-segment ${blankLevel === 1.0 ? 'active' : ''}`} tabIndex="-1" onClick={() => setBlankLevel(1.0)}>100%</button>
           </div>
         </div>
       </div>
@@ -79,6 +81,7 @@ export default function StudyControls({
         <button 
           className="btn-help-bottom-toggle"
           onClick={startTour}
+          tabIndex="-1"
           title="Xem hướng dẫn sử dụng nhanh"
           style={{
             display: 'inline-flex',

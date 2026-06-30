@@ -45,6 +45,7 @@ export default function Sidebar({
         <select 
           onChange={(e) => handleShowChange(e.target.value)}
           value={selectedShow}
+          tabIndex="-1"
           title="Chọn phim"
         >
           {Object.keys(showsData).map(showId => (
@@ -55,6 +56,7 @@ export default function Sidebar({
         <select 
           onChange={(e) => handleSeasonChange(selectedShow, e.target.value)}
           value={selectedSeason}
+          tabIndex="-1"
           title="Chọn season"
           disabled={!selectedShow}
         >
@@ -74,6 +76,7 @@ export default function Sidebar({
         <select 
           onChange={(e) => handleEpisodeChange(e.target.value)}
           value={selectedEpisodeId}
+          tabIndex="-1"
           title="Chọn tập"
           disabled={!selectedSeason}
         >
@@ -98,6 +101,7 @@ export default function Sidebar({
         <button 
           className={`tab-btn ${sidebarTab === 'script' ? 'active' : ''}`}
           onClick={() => setSidebarTab('script')}
+          tabIndex="-1"
         >
           <BookOpen size={14} style={{ marginRight: '6px' }} />
           Kịch bản
@@ -105,6 +109,7 @@ export default function Sidebar({
         <button 
           className={`tab-btn ${sidebarTab === 'vocab' ? 'active' : ''}`}
           onClick={() => setSidebarTab('vocab')}
+          tabIndex="-1"
         >
           <Star size={14} style={{ marginRight: '6px' }} />
           Từ vựng ({savedVocab.length})
@@ -112,6 +117,7 @@ export default function Sidebar({
         <button 
           className={`tab-btn ${sidebarTab === 'sentences' ? 'active' : ''}`}
           onClick={() => setSidebarTab('sentences')}
+          tabIndex="-1"
         >
           <Bookmark size={14} style={{ marginRight: '6px' }} />
           Đã lưu ({savedSentences.length})
@@ -130,7 +136,7 @@ export default function Sidebar({
                   if (videoRef.current) {
                     setPausedSub(null);
                     setRevealedIndices([]);
-                    videoRef.current.currentTime = sub.start;
+                    videoRef.current.currentTime = sub.start + 0.02; // Cộng thêm 20ms để tránh lệch điểm dừng về câu trước
                     videoRef.current.play().then(() => setIsPlaying(true));
                   }
                 }}
@@ -140,6 +146,7 @@ export default function Sidebar({
                   <div className="transcript-actions" onClick={(e) => e.stopPropagation()}>
                     <button 
                       className="btn-sub-copy-compact"
+                      tabIndex="-1"
                       onClick={() => setSyncingSegment({
                         index: sub.index,
                         start: sub.start,
@@ -153,6 +160,7 @@ export default function Sidebar({
                     </button>
                     <button 
                       className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
+                      tabIndex="-1"
                       onClick={() => handleCopySubtitle(sub, index, 'raw')}
                       title="Sao chép câu thoại gốc tiếng Anh"
                     >
@@ -160,6 +168,7 @@ export default function Sidebar({
                     </button>
                     <button 
                       className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_prompt` ? 'copied' : ''}`}
+                      tabIndex="-1"
                       onClick={() => handleCopySubtitle(sub, index, 'prompt')}
                       title="Sao chép Prompt học từ vựng gửi Gemini"
                     >
@@ -167,6 +176,7 @@ export default function Sidebar({
                     </button>
                     <button
                       className="btn-sub-copy-compact btn-sidebar-ai"
+                      tabIndex="-1"
                       onClick={() => handleAiExplain(sub)}
                       title="AI giải nghĩa và phân tích nhanh ngữ cảnh"
                     >
@@ -174,6 +184,7 @@ export default function Sidebar({
                     </button>
                     <button 
                       className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
+                      tabIndex="-1"
                       onClick={() => {
                         if (isSaved) {
                           removeSentence(`${currentEpisode.id}_${sub.start}`);
@@ -197,28 +208,28 @@ export default function Sidebar({
                     <div className="sync-editor-row-compact">
                       <span className="sync-time-label">Bắt đầu ({followActiveSubtitleSync ? sub.start.toFixed(2) : syncingSegment?.start.toFixed(2)}s)</span>
                       <div className="sync-btn-group-compact">
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.5), sub.end, sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.5) }));
                           }
                         }}>-0.5s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.1), sub.end, sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }));
                           }
                         }}>-0.1s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.1), sub.end, sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }));
                           }
                         }}>+0.1s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.5), sub.end, sub.english, sub.vietnamese);
                           } else {
@@ -232,28 +243,28 @@ export default function Sidebar({
                     <div className="sync-editor-row-compact">
                       <span className="sync-time-label">Kết thúc ({followActiveSubtitleSync ? sub.end.toFixed(2) : syncingSegment?.end.toFixed(2)}s)</span>
                       <div className="sync-btn-group-compact">
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.5), sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.5) }));
                           }
                         }}>-0.5s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.1), sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }));
                           }
                         }}>-0.1s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, sub.start, sub.end + 0.1, sub.english, sub.vietnamese);
                           } else {
                             setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }));
                           }
                         }}>+0.1s</button>
-                        <button className="btn-adjust-minimal" onClick={() => {
+                        <button className="btn-adjust-minimal" tabIndex="-1" onClick={() => {
                           if (followActiveSubtitleSync) {
                             handleSaveTimeSync(sub.index, sub.start, sub.end + 0.5, sub.english, sub.vietnamese);
                           } else {
@@ -292,7 +303,7 @@ export default function Sidebar({
                     />
 
                     <div className="sync-editor-actions-minimal">
-                      <button className="btn-sync-cancel-minimal" onClick={() => {
+                      <button className="btn-sync-cancel-minimal" tabIndex="-1" onClick={() => {
                         if (followActiveSubtitleSync) {
                           setFollowActiveSubtitleSync(false);
                         } else {
@@ -300,7 +311,7 @@ export default function Sidebar({
                         }
                       }}>{followActiveSubtitleSync ? 'Tắt Auto' : 'Hủy'}</button>
                       {!followActiveSubtitleSync && (
-                        <button className="btn-sync-save-minimal" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu</button>
+                        <button className="btn-sync-save-minimal" tabIndex="-1" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu</button>
                       )}
                     </div>
                   </div>
@@ -312,7 +323,7 @@ export default function Sidebar({
 
         <div className="vocab-list" style={{ display: sidebarTab === 'vocab' ? 'block' : 'none' }}>
           {savedVocab.length > 0 && (
-            <button className="btn-clear-all-vocab" onClick={clearAllVocab}>
+            <button className="btn-clear-all-vocab" tabIndex="-1" onClick={clearAllVocab}>
               <Trash2 size={12} style={{ marginRight: '6px' }} />
               Xóa tất cả từ đã lưu
             </button>
@@ -325,6 +336,7 @@ export default function Sidebar({
                   {item.audio_url && (
                     <button 
                       className="btn-audio-pronounce"
+                      tabIndex="-1"
                       onClick={() => {
                         const audio = new Audio(item.audio_url);
                         audio.play().catch(err => console.error("Audio play error:", err));
@@ -344,7 +356,7 @@ export default function Sidebar({
                     </button>
                   )}
                 </div>
-                <button className="btn-remove-vocab" onClick={() => removeWord(item.word)}>
+                <button className="btn-remove-vocab" tabIndex="-1" onClick={() => removeWord(item.word)}>
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -381,6 +393,7 @@ export default function Sidebar({
                     </span>
                     <button 
                       className="btn-remove-saved-sentence" 
+                      tabIndex="-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeSentence(item.id);
