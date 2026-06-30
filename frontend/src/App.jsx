@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 
 const API_BASE = 'http://localhost:8000';
@@ -37,7 +37,7 @@ function App() {
   // New language learning states
   const [blankLevel, setBlankLevel] = useState(0); // 0, 0.3, 0.5, 1.0
   const [revealBlanked, setRevealBlanked] = useState(false);
-  const [revealAll, setRevealAll] = useState(false);
+  const [autoPauseOnBlank, setAutoPauseOnBlank] = useState(true);
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
   const [resumeData, setResumeData] = useState(null); // { time, formatted }
@@ -50,8 +50,32 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Subtitle synchronization state
-  const [syncingSegment, setSyncingSegment] = useState(null); // { index, start, end, english, vietnamese }
+  const [followActiveSubtitleSync, setFollowActiveSubtitleSync] = useState(false); // Chế độ tự động mở / bám theo câu thoại đang chạy
+  const [syncingSegment, setSyncingSegment] = useState(null); // Trạng thái câu thoại đang được chỉnh đồng bộ/sửa chữ
+
+  // AI Explain panel state
+  const [aiPanel, setAiPanel] = useState(null); // null | { loading: true } | { data: {...} } | { error: '...' }
+  const [aiPanelSentence, setAiPanelSentence] = useState(''); // câu đang được giải thích
+  const [aiPanelTranslation, setAiPanelTranslation] = useState(''); // bản dịch gốc của câu đang giải thích
+
+  // Drag selection state (word-by-word selection)
+  const [dragStartIdx, setDragStartIdx] = useState(null);
+  const [dragEndIdx, setDragEndIdx] = useState(null);
+  const [dragOccurred, setDragOccurred] = useState(false);
+  const startRectRef = useRef(null);
+  const justDraggedRef = useRef(false);
+  const autoPauseOnBlankRef = useRef(true);
+  const revealedIndicesRef = useRef([]);
+  const seekTargetRef = useRef(0); // Thời điểm seek cuối cùng — bỏ qua auto-pause với mọi subtitle kết thúc tại/trước đây
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setDragStartIdx(null);
+      setDragEndIdx(null);
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
 
   const handleSaveTimeSync = (segmentIndex, newStart, newEnd, newEnglish, newVietnamese) => {
     if (!currentEpisode) return;
@@ -182,10 +206,17 @@ function App() {
     });
   };
 
-  const clearAllVocab = () => {
+  const clearAllVocab = async () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa tất cả từ vựng đã lưu?")) {
+      const items = [...savedVocab];
       setSavedVocab([]);
-      localStorage.removeItem('saved_vocab');
+      for (const item of items) {
+        try {
+          await fetch(`${API_BASE}/api/vocabulary/${encodeURIComponent(item.word)}`, { method: 'DELETE' });
+        } catch (err) {
+          console.error("Error clearing item:", item.word, err);
+        }
+      }
     }
   };
 
@@ -268,12 +299,16 @@ function App() {
     }
   }, [currentEpisode, selectedShow, selectedSeason]);
 
-  // Load saved vocabulary on mount
+  // Load saved vocabulary on mount from SQLite database
   useEffect(() => {
-    const saved = localStorage.getItem('saved_vocab');
-    if (saved) {
-      setSavedVocab(JSON.parse(saved));
-    }
+    fetch(`${API_BASE}/api/vocabulary`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.status === 'ok') {
+          setSavedVocab(json.data);
+        }
+      })
+      .catch(err => console.error("Error loading vocabulary:", err));
   }, []);
 
   // Reset blanking states only when we transition to a different, non-null subtitle segment
@@ -283,11 +318,14 @@ function App() {
       if (lastResetSubIdRef.current !== subToUse.start) {
         lastResetSubIdRef.current = subToUse.start;
         setRevealBlanked(false);
-        setRevealAll(false);
         setRevealedIndices([]);
       }
     }
   }, [activeSub, pausedSub]);
+
+  // Sync refs để tránh stale closure trong handleTimeUpdate
+  useEffect(() => { autoPauseOnBlankRef.current = autoPauseOnBlank; }, [autoPauseOnBlank]);
+  useEffect(() => { revealedIndicesRef.current = revealedIndices; }, [revealedIndices]);
 
 
 
@@ -500,47 +538,59 @@ function App() {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        // Phím S: Lặp lại câu hiện tại (hoặc câu gần nhất vừa phát xong)
-        let subToRepeat = subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end);
-        if (!subToRepeat) {
-          // Nếu đang ở khoảng trống, lặp lại câu vừa kết thúc gần đây nhất
-          subToRepeat = [...subtitles].reverse().find(s => s.end <= video.currentTime);
-        }
+        // Phím S: Phát lại câu đang hiển thị — tìm hoàn toàn theo video.currentTime để tránh stale state
+        const t = video.currentTime;
+        const subToRepeat = subtitles.find(s => t >= s.start && t <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= t);
         if (subToRepeat) {
-          setPausedSub(null); // Clear lock
-          setRevealedIndices([]); // Reset đục lỗ của câu cũ
+          if (resumeTimeoutRef.current) { clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
+          setPausedSub(null);
+          setRevealedIndices([]);
+          revealedIndicesRef.current = [];
+          seekTargetRef.current = subToRepeat.start; // bỏ qua tất cả subtitle kết thúc tại/trước đầu câu mục tiêu
+          lastSubIndexRef.current = subToRepeat.start;
           video.currentTime = subToRepeat.start;
           video.play().then(() => setIsPlaying(true));
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        // Phím A: Lùi về câu trước câu hiện tại
-        const currentSub = subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end);
-        if (currentSub) {
-          const idx = subtitles.findIndex(s => s === currentSub);
+        // Phím A: Lùi về câu trước — tìm hoàn toàn theo video.currentTime
+        const t = video.currentTime;
+        const curSub = subtitles.find(s => t >= s.start && t <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= t);
+        if (curSub) {
+          const idx = subtitles.findIndex(s => s.start === curSub.start);
           if (idx > 0) {
+            const targetSub = subtitles[idx - 1];
+            if (resumeTimeoutRef.current) { clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
             setPausedSub(null);
             setRevealedIndices([]);
-            video.currentTime = subtitles[idx - 1].start;
-            video.play().then(() => setIsPlaying(true));
-          }
-        } else {
-          // Nếu ở khoảng trống, nhảy về câu bắt đầu trước thời điểm hiện tại
-          const prevSub = [...subtitles].reverse().find(s => s.start < video.currentTime);
-          if (prevSub) {
-            setPausedSub(null);
-            setRevealedIndices([]);
-            video.currentTime = prevSub.start;
+            revealedIndicesRef.current = [];
+            seekTargetRef.current = targetSub.start;
+            lastSubIndexRef.current = targetSub.start;
+            setActiveSidebarSub(targetSub);
+            video.currentTime = targetSub.start;
             video.play().then(() => setIsPlaying(true));
           }
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        // Phím D: Tiến tới câu tiếp theo
-        const nextSub = subtitles.find(s => s.start > video.currentTime + 0.1);
-        if (nextSub) {
-          setPausedSub(null);
-          setRevealedIndices([]);
-          video.currentTime = nextSub.start;
-          video.play().then(() => setIsPlaying(true));
+        // Phím D: Tiến câu tiếp theo — tìm hoàn toàn theo video.currentTime
+        const t = video.currentTime;
+        const curSub = subtitles.find(s => t >= s.start && t <= s.end)
+          || [...subtitles].reverse().find(s => s.end <= t);
+        if (curSub) {
+          const idx = subtitles.findIndex(s => s.start === curSub.start);
+          if (idx !== -1 && idx < subtitles.length - 1) {
+            const targetSub = subtitles[idx + 1];
+            if (resumeTimeoutRef.current) { clearTimeout(resumeTimeoutRef.current); resumeTimeoutRef.current = null; }
+            setPausedSub(null);
+            setRevealedIndices([]);
+            revealedIndicesRef.current = [];
+            seekTargetRef.current = targetSub.start;
+            lastSubIndexRef.current = targetSub.start;
+            setActiveSidebarSub(targetSub);
+            video.currentTime = targetSub.start;
+            video.play().then(() => setIsPlaying(true));
+          }
         }
       } else if (e.key === 'ArrowLeft') {
         video.currentTime = Math.max(0, video.currentTime - 10);
@@ -574,7 +624,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSub, pausedSub, subtitles, duration, blankLevel, revealedIndices]);
+  }, [activeSub, pausedSub, subtitles, duration, blankLevel, revealedIndices, activeSidebarSub]);
 
   // Netflix-style control bar auto-hide
   const handleMouseMove = () => {
@@ -618,8 +668,19 @@ function App() {
           block: 'center'
         });
       }
+
+      // Tự động đồng bộ và hiển thị panel chỉnh sửa nếu bật Auto-sync Edit
+      if (followActiveSubtitleSync) {
+        setSyncingSegment({
+          index: activeSidebarSub.index,
+          start: activeSidebarSub.start,
+          end: activeSidebarSub.end,
+          english: activeSidebarSub.english,
+          vietnamese: activeSidebarSub.vietnamese
+        });
+      }
     }
-  }, [activeSidebarSub, sidebarTab]);
+  }, [activeSidebarSub, sidebarTab, followActiveSubtitleSync]);
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
@@ -643,31 +704,49 @@ function App() {
       setActiveSub(justEnded);
     } else if (current) {
       setActiveSub(current);
-      setActiveSidebarSub(current);
+      // Chỉ cập nhật tiêu điểm Sidebar kịch bản khi video đang phát thực tế
+      if (video && !video.paused) {
+        setActiveSidebarSub(current);
+      }
     } else {
       setActiveSub(null);
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended (trigger immediately at s.end)
-    if (Number(shadowingDelay) !== -99) {
+    // Shadowing / Auto-pause: check if any subtitle has just ended
+    const shouldPause = (Number(shadowingDelay) !== -99) || (blankLevel > 0 && autoPauseOnBlankRef.current);
+    if (shouldPause) {
       const endedSub = subtitles.find(s => time >= s.end && time <= s.end + 0.5);
-      if (endedSub && lastSubIndexRef.current !== endedSub.start) {
-        lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
-        setPausedSub(endedSub); // lock this sub on screen
+      // Bỏ qua mọi subtitle kết thúc tại/trước thời điểm seek — tránh false trigger khi replay
+      if (endedSub && endedSub.end > seekTargetRef.current && lastSubIndexRef.current !== endedSub.end) {
+        lastSubIndexRef.current = endedSub.end;
+        setPausedSub(endedSub);
+        setActiveSidebarSub(endedSub);
         video.pause();
         setIsPlaying(false);
 
+        // Check if there are blanked words and auto-pause is on
+        if (blankLevel > 0 && autoPauseOnBlankRef.current) {
+          const blankedSet = getBlankedIndices(endedSub.english, blankLevel);
+          if (blankedSet.size > 0) {
+            const blankedArray = Array.from(blankedSet);
+            const allRevealed = blankedArray.every(idx => revealedIndicesRef.current.includes(idx));
+            if (!allRevealed) {
+              // Stay paused until all blanked words are revealed via Tab/clicks!
+              return;
+            }
+          }
+        }
+
+        // Nếu dừng tự nói là Dừng hẳn
         if (Number(shadowingDelay) === 999) {
           return;
         }
 
-        // Check if there are blanked words in this subtitle segment
-        if (blankLevel > 0) {
-          const blankedSet = getBlankedIndices(endedSub.english, blankLevel);
-          if (blankedSet.size > 0) {
-            // Stay paused until all blanked words are revealed via Tab/clicks!
-            return;
-          }
+        // Nếu dừng tự nói là Tắt (-99) nhưng bị dừng do đục lỗ và đã giải hết -> chạy tiếp luôn không delay
+        if (Number(shadowingDelay) === -99) {
+          setPausedSub(null);
+          video.play().then(() => setIsPlaying(true));
+          return;
         }
 
         const segmentDuration = endedSub.end - endedSub.start;
@@ -676,7 +755,7 @@ function App() {
         if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
         resumeTimeoutRef.current = setTimeout(() => {
           if (videoRef.current) {
-            setPausedSub(null); // clear lock before playing
+            setPausedSub(null);
             videoRef.current.play().then(() => setIsPlaying(true));
           }
         }, totalPauseSeconds * 1000);
@@ -685,7 +764,53 @@ function App() {
     }
   };
 
-  const togglePlay = () => {
+  // ─── AI Explain ─────────────────────────────────────────────────────────────
+  const handleAiExplain = async (sub, focusWord = '') => {
+    if (!sub) return;
+    const sentence = sub.english;
+    const vietnamese = sub.vietnamese || '';
+    setAiPanelSentence(sentence);
+    setAiPanelTranslation(vietnamese);
+    setAiPanel({ loading: true });
+    try {
+      const res = await fetch(`${API_BASE}/api/explain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sentence, vietnamese, word: focusWord }),
+      });
+      if (res.status === 429) {
+        setAiPanel({ error: 'Đã hết quota Gemini hôm nay 😅 Thử lại ngày mai nhé!' });
+        return;
+      }
+      if (!res.ok) throw new Error('Lỗi server');
+      const json = await res.json();
+      setAiPanel({ data: json.data });
+    } catch (err) {
+      setAiPanel({ error: 'Không kết nối được với AI. Kiểm tra backend đang chạy chưa?' });
+    }
+  };
+
+  // Helper đơn giản để parse in đậm (**) và in nghiêng (*) từ text trả về của AI
+  const parseMarkdown = (text) => {
+    if (!text) return '';
+    // Xử lý **text** -> <strong>text</strong>
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Xử lý *text* -> <em>text</em>
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
+  const togglePlay = (e) => {
+    // Nếu popover đang hiển thị, click vào video chỉ đóng popover chứ không pause/play video
+    if (clickedWord) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      handleClosePopover(e, true);
+      return;
+    }
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -701,7 +826,7 @@ function App() {
     } else {
       setPausedSub(null); // clear lock on manual play
       video.play().then(() => setIsPlaying(true));
-      setClickedWord(null);
+      handleClosePopover();
     }
   };
 
@@ -718,26 +843,56 @@ function App() {
     }
   };
 
-  const handleWordClick = (e, word) => {
-    e.stopPropagation();
-    
-    if (videoRef.current && isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  const handleClosePopover = (e, force = false) => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      if (!force) return;
     }
 
-    setClickedWord(word);
-    
-    // Calculate tooltip coordinates inside the container Ref
-    const rect = e.target.getBoundingClientRect();
+    // Nếu force = true (bấm nút đóng), bỏ qua các kiểm tra để đóng ngay lập tức
+    if (!force) {
+      const selectedText = window.getSelection().toString().trim();
+      if (selectedText) {
+        return;
+      }
+
+      // Nếu click bên trong dictionary popover, bỏ qua không đóng
+      if (e && e.target && e.target.closest('.dictionary-popover')) {
+        return;
+      }
+    }
+
+    setClickedWord(null);
+    setWordDefinition(null);
+    try {
+      window.getSelection().removeAllRanges(); // Xóa bôi đen lựa chọn chữ
+    } catch (err) {}
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+    }
+  };
+
+  const translateAndShowPopover = (text, rect) => {
+    if (!containerRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
-    
+
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.5; // Giảm tốc độ xuống 0.5x khi tra cứu
+    }
+
+    // Giới hạn để popover không lệch ra ngoài biên trái/phải của màn hình video
+    const popoverLeft = rect.left - containerRect.left + rect.width / 2;
+    const clampedLeft = Math.max(135, Math.min(containerRect.width - 135, popoverLeft));
+
     setPopoverPos({
-      top: rect.top - containerRect.top - 145,
-      left: rect.left - containerRect.left + rect.width / 2 - 125
+      top: rect.top - containerRect.top,
+      left: clampedLeft
     });
 
-    fetch(`${API_BASE}/api/translate?word=${encodeURIComponent(word)}`)
+    setClickedWord(text);
+    setWordDefinition(null);
+
+    fetch(`${API_BASE}/api/translate?word=${encodeURIComponent(text)}`)
       .then(res => res.json())
       .then(data => {
         setWordDefinition(data);
@@ -745,10 +900,10 @@ function App() {
       .catch(err => {
         console.error("Translate error:", err);
         setWordDefinition({
-          word,
+          word: text,
           translation: "Không tìm thấy nghĩa",
-          ipa: `/${word}/`,
-          part_of_speech: "N/A"
+          ipa: text.includes(" ") ? "" : `/${text}/`,
+          part_of_speech: text.includes(" ") ? "phrase" : "N/A"
         });
       });
   };
@@ -759,15 +914,29 @@ function App() {
     if (!updated.some(item => item.word === wordDefinition.word)) {
       updated.push(wordDefinition);
       setSavedVocab(updated);
-      localStorage.setItem('saved_vocab', JSON.stringify(updated));
+      
+      // Gửi lên SQLite backend
+      fetch(`${API_BASE}/api/vocabulary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          word: wordDefinition.word,
+          ipa: wordDefinition.ipa || '',
+          translation: wordDefinition.translation
+        })
+      }).catch(err => console.error("Error saving vocab to SQLite:", err));
     }
-    setClickedWord(null);
+    handleClosePopover();
   };
 
   const removeWord = (word) => {
     const updated = savedVocab.filter(item => item.word !== word);
     setSavedVocab(updated);
-    localStorage.setItem('saved_vocab', JSON.stringify(updated));
+    
+    // Gửi DELETE request lên SQLite backend
+    fetch(`${API_BASE}/api/vocabulary/${encodeURIComponent(word)}`, {
+      method: 'DELETE'
+    }).catch(err => console.error("Error deleting vocab from SQLite:", err));
   };
 
   const formatTime = (timeInSecs) => {
@@ -793,36 +962,109 @@ function App() {
     const words = lineText.split(/(\s+)/);
     const blankedIndices = getBlankedIndices(lineText, blankLevel);
     
+    // Tìm phạm vi đang được kéo chọn từ (word-by-word drag selection)
+    const isSelecting = dragStartIdx !== null && dragEndIdx !== null;
+    const minIdx = isSelecting ? Math.min(dragStartIdx, dragEndIdx) : -1;
+    const maxIdx = isSelecting ? Math.max(dragStartIdx, dragEndIdx) : -1;
+
     return words.map((chunk, idx) => {
       if (chunk.trim() === '') return chunk;
       
       const cleanWord = chunk.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"]/g, "");
       const isBlankedWord = blankedIndices.has(idx);
-      const isCurrentlyRevealed = revealAll || revealedIndices.includes(idx);
+      const isCurrentlyRevealed = revealedIndices.includes(idx);
       
       const displayChunk = (isBlankedWord && !isCurrentlyRevealed)
         ? chunk.replace(/[a-zA-Z]/g, "_")
         : chunk;
-        
+         
       const isShowingPlaceholder = isBlankedWord && !isCurrentlyRevealed;
+      const isSelected = isSelecting && idx >= minIdx && idx <= maxIdx;
 
       return (
         <span 
           key={idx} 
-          className={`word-span ${isBlankedWord ? 'blanked' : ''} ${isCurrentlyRevealed && isBlankedWord ? 'revealed' : ''}`}
-          onClick={(e) => {
-            if (isShowingPlaceholder) {
-              setRevealedIndices(prev => [...prev, idx]);
-            } else {
-              handleWordClick(e, cleanWord);
+          className={`word-span ${isBlankedWord ? 'blanked' : ''} ${isCurrentlyRevealed && isBlankedWord ? 'revealed' : ''} ${isSelected ? 'word-selected' : ''}`}
+          onMouseDown={(e) => {
+            if (isShowingPlaceholder) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setDragStartIdx(idx);
+            setDragEndIdx(idx);
+            setDragOccurred(false);
+            startRectRef.current = e.currentTarget.getBoundingClientRect();
+          }}
+          onMouseEnter={() => {
+            if (dragStartIdx !== null) {
+              setDragEndIdx(idx);
+              setDragOccurred(true);
             }
           }}
-          title={isShowingPlaceholder ? "Click to reveal" : "Click to translate"}
+          onMouseUp={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (dragStartIdx !== null && dragEndIdx !== null && dragOccurred) {
+              const start = Math.min(dragStartIdx, dragEndIdx);
+              const end = Math.max(dragStartIdx, dragEndIdx);
+              
+              const selectedChunks = words.slice(start, end + 1);
+              const selectedText = selectedChunks.join('').trim();
+              const cleanText = selectedText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"]/g, "");
+              
+              const endRect = e.currentTarget.getBoundingClientRect();
+              const startRect = startRectRef.current || endRect;
+              
+              const unionRect = {
+                left: Math.min(startRect.left, endRect.left),
+                top: Math.min(startRect.top, endRect.top),
+                right: Math.max(startRect.right, endRect.right),
+                bottom: Math.max(startRect.bottom, endRect.bottom)
+              };
+              unionRect.width = unionRect.right - unionRect.left;
+              unionRect.height = unionRect.bottom - unionRect.top;
+              
+              justDraggedRef.current = true;
+              translateAndShowPopover(cleanText, unionRect);
+            }
+            setDragStartIdx(null);
+            setDragEndIdx(null);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isShowingPlaceholder) {
+              setRevealedIndices(prev => [...prev, idx]);
+            } else if (!dragOccurred) {
+              // Nếu chỉ click bình thường vào một từ (không phải kéo thả để chọn cụm từ)
+              const rect = e.currentTarget.getBoundingClientRect();
+              translateAndShowPopover(cleanWord, rect);
+            }
+            setDragOccurred(false);
+          }}
+          title={isShowingPlaceholder ? "Click to reveal" : "Click to translate / Hold & drag to select phrase"}
         >
           {displayChunk}
         </span>
       );
     });
+  };
+ 
+  const handleSubtitleMouseUp = (e) => {
+    e.stopPropagation();
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
+    if (!selectedText) return;
+ 
+    try {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const cleanText = selectedText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"]/g, "");
+      if (cleanText) {
+        justDraggedRef.current = true;
+        translateAndShowPopover(cleanText, rect);
+      }
+    } catch (err) {
+      console.error("Error getting selection rect:", err);
+    }
   };
 
   const handleCopySubtitle = (sub, index, type) => {
@@ -852,68 +1094,7 @@ function App() {
   };
 
   return (
-    <div className="app-container" onClick={() => setClickedWord(null)}>
-      {/* Header */}
-      <header className="app-header">
-        <div className="logo">
-          🍿 Friends Learning <span>Bilingual Player</span>
-        </div>
-        <div className="header-controls" style={{ display: 'flex', gap: '10px' }}>
-          {/* Show Selector */}
-          <select 
-            onChange={(e) => handleShowChange(e.target.value)}
-            value={selectedShow}
-            title="Chọn phim"
-          >
-            {Object.keys(showsData).map(showId => (
-              <option key={showId} value={showId}>{showsData[showId].title}</option>
-            ))}
-          </select>
-
-          {/* Season Selector */}
-          <select 
-            onChange={(e) => handleSeasonChange(selectedShow, e.target.value)}
-            value={selectedSeason}
-            title="Chọn season"
-            disabled={!selectedShow}
-          >
-            {selectedShow && Object.keys(showsData[selectedShow]?.seasons || {})
-              .sort((a, b) => {
-                const numA = parseInt(a.replace(/\D/g, '')) || 0;
-                const numB = parseInt(b.replace(/\D/g, '')) || 0;
-                return numA - numB;
-              })
-              .map(seasonId => (
-                <option key={seasonId} value={seasonId}>
-                  {showsData[selectedShow].seasons[seasonId].title}
-                </option>
-              ))}
-          </select>
-
-          {/* Episode Selector */}
-          <select 
-            onChange={(e) => handleEpisodeChange(e.target.value)}
-            value={selectedEpisodeId}
-            title="Chọn tập"
-            disabled={!selectedSeason}
-          >
-            {(selectedShow && selectedSeason && showsData[selectedShow]?.seasons[selectedSeason]?.episodes || [])
-              .sort((a, b) => {
-                const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
-                const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
-                return numA - numB;
-              })
-              .map(ep => {
-                const isWatched = watchedEpisodes.includes(ep.id);
-                return (
-                  <option key={ep.id} value={ep.id}>
-                    {isWatched ? '✓ ' : ''}{ep.title}
-                  </option>
-                );
-              })}
-          </select>
-        </div>
-      </header>
+    <div className="app-container" onClick={handleClosePopover}>
 
       {/* Main Content */}
       <div className="main-content">
@@ -994,7 +1175,7 @@ function App() {
 
             {/* Custom Subtitles Overlay */}
             {(pausedSub || activeSub) && (showEnglish || showVietnamese) && (
-              <div className="subtitles-overlay">
+              <div className="subtitles-overlay" onMouseUp={handleSubtitleMouseUp}>
                 {showEnglish && (
                   <div className="sub-english">
                     {renderCleanWords((pausedSub || activeSub).english)}
@@ -1015,12 +1196,44 @@ function App() {
                 style={{ top: `${popoverPos.top}px`, left: `${popoverPos.left}px` }}
                 onClick={(e) => e.stopPropagation()}
               >
+                <button 
+                  className="btn-close-popover"
+                  onClick={(e) => handleClosePopover(e, true)}
+                  title="Đóng bảng tra cứu"
+                >
+                  ✕
+                </button>
                 <div className="popover-header">
                   <h4 className="popover-word">{clickedWord}</h4>
-                  {wordDefinition && <span className="popover-ipa">{wordDefinition.ipa}</span>}
+                  {wordDefinition && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {wordDefinition.ipa && <span className="popover-ipa">{wordDefinition.ipa}</span>}
+                      {wordDefinition.audio_url && (
+                        <button 
+                          className="btn-audio-pronounce"
+                          onClick={() => {
+                            const audio = new Audio(wordDefinition.audio_url);
+                            audio.play().catch(err => console.error("Audio play error:", err));
+                          }}
+                          title="Nghe phát âm"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            padding: '2px',
+                            lineHeight: 1
+                          }}
+                        >
+                          🔊
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {wordDefinition ? (
                   <>
+                    {wordDefinition.part_of_speech && <span className="popover-pos-badge">{wordDefinition.part_of_speech}</span>}
                     <p className="popover-def">{wordDefinition.translation}</p>
                     <button className="btn-save-word" onClick={saveWord}>⭐ Lưu Từ</button>
                   </>
@@ -1110,11 +1323,28 @@ function App() {
 
           {/* Study Controls Bar (Compact horizontal bar) */}
           <div className="study-controls-bar" onClick={(e) => e.stopPropagation()}>
-            <div className="study-bar-left">
-              <span className="study-bar-title">🎓 Học tập</span>
-            </div>
-            
             <div className="study-bar-group">
+              {/* Auto-sync Edit Toggle */}
+              <div className="watched-toggle-container">
+                <label className="watched-toggle-label" title="Tự động mở panel chỉnh sửa phụ đề bám theo câu thoại đang phát">
+                  <input 
+                    type="checkbox"
+                    checked={followActiveSubtitleSync}
+                    onChange={(e) => {
+                      setFollowActiveSubtitleSync(e.target.checked);
+                      if (e.target.checked) {
+                        setShowSidebar(true);
+                        setSidebarTab('script');
+                      } else {
+                        setSyncingSegment(null);
+                      }
+                    }}
+                    className="watched-checkbox"
+                  />
+                  <span className="setting-label">Auto-sync Edit</span>
+                </label>
+              </div>
+
               {/* Progress watched checkbox */}
               <div className="watched-toggle-container">
                 <label className="watched-toggle-label">
@@ -1156,28 +1386,151 @@ function App() {
               {/* Blanking Level */}
               <div className="blank-level-selectors">
                 <span className="setting-label">Đục lỗ:</span>
-                <button className={`btn-study-mode ${blankLevel === 0 ? 'active' : ''}`} onClick={() => { setBlankLevel(0); setRevealAll(false); }}>Tắt</button>
-                <button className={`btn-study-mode ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.3); setRevealAll(false); }}>30%</button>
-                <button className={`btn-study-mode ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.5); setRevealAll(false); }}>50%</button>
-                <button className={`btn-study-mode ${blankLevel === 0.7 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.7); setRevealAll(false); }}>70%</button>
-                <button className={`btn-study-mode ${blankLevel === 1.0 ? 'active' : ''}`} onClick={() => { setBlankLevel(1.0); setRevealAll(false); }}>100%</button>
+                <button className={`btn-study-mode ${blankLevel === 0 ? 'active' : ''}`} onClick={() => { setBlankLevel(0); }}>Tắt</button>
+                <button className={`btn-study-mode ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.3); }}>30%</button>
+                <button className={`btn-study-mode ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.5); }}>50%</button>
+                <button className={`btn-study-mode ${blankLevel === 0.7 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.7); }}>70%</button>
+                <button className={`btn-study-mode ${blankLevel === 1.0 ? 'active' : ''}`} onClick={() => { setBlankLevel(1.0); }}>100%</button>
                 
                 {blankLevel > 0 && (
-                  <button 
-                    className={`btn-reveal-all ${revealAll ? 'active' : ''}`}
-                    onClick={() => setRevealAll(!revealAll)}
-                    title="Hiện tất cả các từ bị đục lỗ"
-                  >
-                    👁 Hiện tất cả
-                  </button>
+                  <label className="watched-toggle-label" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '12px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox"
+                      checked={autoPauseOnBlank}
+                      onChange={() => setAutoPauseOnBlank(!autoPauseOnBlank)}
+                      className="watched-checkbox"
+                    />
+                    <span className="setting-label" style={{ marginLeft: '4px' }}>Tự dừng</span>
+                  </label>
                 )}
               </div>
             </div>
           </div>
+
+          {/* AI Explain Output Panel */}
+          {aiPanel && (
+            <div className="ai-explain-panel" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+              <button 
+                className="btn-close-ai" 
+                style={{ position: 'absolute', top: '12px', right: '15px', fontSize: '18px', zIndex: 10 }}
+                onClick={() => setAiPanel(null)}
+              >
+                ✕
+              </button>
+              <div className="ai-explain-body" style={{ paddingTop: '10px' }}>
+                <p className="ai-explain-sentence"><strong>Câu thoại:</strong> "{aiPanelSentence}"</p>
+                {aiPanelTranslation && (
+                  <p className="ai-explain-translation" style={{ marginBottom: aiPanel.data?.translation ? '4px' : '20px' }}>
+                    <strong>Phụ đề gốc:</strong> {aiPanelTranslation}
+                  </p>
+                )}
+                {!aiPanel.loading && !aiPanel.error && aiPanel.data?.translation && (
+                  <p className="ai-explain-translation" style={{ color: '#8ab4f8', marginBottom: '20px' }}>
+                    <strong>AI dịch nghĩa:</strong> {aiPanel.data.translation}
+                  </p>
+                )}
+                {aiPanel.loading ? (
+                  <div className="ai-loading">
+                    <span className="spinner"></span> Đang kết nối AI giáo viên...
+                  </div>
+                ) : aiPanel.error ? (
+                  <div className="ai-error">⚠️ {aiPanel.error}</div>
+                ) : (
+                  <div className="ai-content">
+                    {/* Google-Style Dictionary Card Layout */}
+                    <div className="google-dict-card">
+                      <div className="google-dict-meta">
+                        {aiPanel.data.tone && (
+                          <span className="google-tone-badge">{aiPanel.data.tone}</span>
+                        )}
+                        <span className="google-dict-type">câu thoại</span>
+                      </div>
+
+                      {aiPanel.data.definition && (
+                        <div className="google-dict-definition">
+                          <span className="google-number">1.</span>
+                          <span className="google-def-text">{parseMarkdown(aiPanel.data.definition)}</span>
+                        </div>
+                      )}
+
+                      {aiPanel.data.key_vocabulary && (
+                        <div className="google-dict-vocab">
+                          <strong>💡 Focus:</strong> <span>{parseMarkdown(aiPanel.data.key_vocabulary)}</span>
+                        </div>
+                      )}
+
+                      {aiPanel.data.example && (
+                        <div className="google-dict-example-box">
+                          <p className="google-example-eng">"{aiPanel.data.example}"</p>
+                          {aiPanel.data.example_translation && (
+                            <p className="google-example-vi">→ {aiPanel.data.example_translation}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Collapsible Sidebar */}
         <aside className={`sidebar ${showSidebar ? 'open' : ''}`}>
+          {/* Sidebar Selectors */}
+          <div className="sidebar-selectors">
+            <select 
+              onChange={(e) => handleShowChange(e.target.value)}
+              value={selectedShow}
+              title="Chọn phim"
+            >
+              {Object.keys(showsData).map(showId => (
+                <option key={showId} value={showId}>{showsData[showId].title}</option>
+              ))}
+            </select>
+
+            <select 
+              onChange={(e) => handleSeasonChange(selectedShow, e.target.value)}
+              value={selectedSeason}
+              title="Chọn season"
+              disabled={!selectedShow}
+            >
+              {selectedShow && Object.keys(showsData[selectedShow]?.seasons || {})
+                .sort((a, b) => {
+                  const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                  const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                  return numA - numB;
+                })
+                .map(seasonId => (
+                  <option key={seasonId} value={seasonId}>
+                    {showsData[selectedShow].seasons[seasonId].title}
+                  </option>
+                ))}
+            </select>
+
+            <select 
+              onChange={(e) => handleEpisodeChange(e.target.value)}
+              value={selectedEpisodeId}
+              title="Chọn tập"
+              disabled={!selectedSeason}
+            >
+              {(selectedShow && selectedSeason && showsData[selectedShow]?.seasons[selectedSeason]?.episodes || [])
+                .sort((a, b) => {
+                  const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+                  const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+                  return numA - numB;
+                })
+                .map(ep => {
+                  const isWatched = watchedEpisodes.includes(ep.id);
+                  return (
+                    <option key={ep.id} value={ep.id}>
+                      {isWatched ? '✓ ' : ''}{ep.title}
+                    </option>
+                  );
+                })}
+            </select>
+          </div>
+
           <div className="sidebar-tabs">
             <button 
               className={`tab-btn ${sidebarTab === 'script' ? 'active' : ''}`}
@@ -1247,6 +1600,13 @@ function App() {
                           >
                             {copyFeedback === `${sub.start}_prompt` ? '✓' : 'Gem'}
                           </button>
+                          <button
+                            className="btn-sub-copy-compact btn-sidebar-ai"
+                            onClick={() => handleAiExplain(sub)}
+                            title="Giải thích nhanh với AI"
+                          >
+                            ✨ AI
+                          </button>
                           <button 
                             className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
                             onClick={() => {
@@ -1266,44 +1626,142 @@ function App() {
                       <p className="transcript-vi">{sub.vietnamese}</p>
 
                       {/* Subtitle Sync Editor Panel */}
-                      {syncingSegment && syncingSegment.index === sub.index && (
+                      {((syncingSegment && syncingSegment.index === sub.index) || followActiveSubtitleSync) && (
                         <div className="sub-sync-editor-panel" onClick={(e) => e.stopPropagation()}>
                           <div className="sync-editor-row">
-                            <span className="sync-label">Bắt đầu:</span>
-                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }))}>-0.1s</button>
-                            <span className="sync-time-val">{syncingSegment.start.toFixed(3)}s</span>
-                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }))}>+0.1s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.5), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.5) }));
+                              }
+                            }}>-0.5s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.3), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.3) }));
+                              }
+                            }}>-0.3s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.1), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }));
+                              }
+                            }}>-0.1s</button>
+                            <span className="sync-time-val">⏱ {followActiveSubtitleSync ? sub.start.toFixed(3) : syncingSegment?.start.toFixed(3)}s</span>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.1), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }));
+                              }
+                            }}>+0.1s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.3), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.3) }));
+                              }
+                            }}>+0.3s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.5), sub.end, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.5) }));
+                              }
+                            }}>+0.5s</button>
                           </div>
                           <div className="sync-editor-row">
-                            <span className="sync-label">Kết thúc:</span>
-                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }))}>-0.1s</button>
-                            <span className="sync-time-val">{syncingSegment.end.toFixed(3)}s</span>
-                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }))}>+0.1s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.5), sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.5) }));
+                              }
+                            }}>-0.5s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.3), sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.3) }));
+                              }
+                            }}>-0.3s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.1), sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }));
+                              }
+                            }}>-0.1s</button>
+                            <span className="sync-time-val">🛑 {followActiveSubtitleSync ? sub.end.toFixed(3) : syncingSegment?.end.toFixed(3)}s</span>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.1, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }));
+                              }
+                            }}>+0.1s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.3, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.3 }));
+                              }
+                            }}>+0.3s</button>
+                            <button className="btn-sync-adjust" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.5, sub.english, sub.vietnamese);
+                              } else {
+                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.5 }));
+                              }
+                            }}>+0.5s</button>
                           </div>
                           
                           {/* Text Inputs for English & Vietnamese */}
                           <div className="sync-editor-text-row">
-                            <span className="sync-label">Tiếng Anh:</span>
                             <input 
                               type="text" 
                               className="sync-text-input" 
-                              value={syncingSegment.english || ''} 
-                              onChange={(e) => setSyncingSegment(prev => ({ ...prev, english: e.target.value }))}
+                              placeholder="Sửa nội dung phụ đề tiếng Anh..."
+                              value={followActiveSubtitleSync ? sub.english : (syncingSegment?.english || '')} 
+                              onChange={(e) => {
+                                if (followActiveSubtitleSync) {
+                                  handleSaveTimeSync(sub.index, sub.start, sub.end, e.target.value, sub.vietnamese);
+                                } else {
+                                  setSyncingSegment(prev => ({ ...prev, english: e.target.value }));
+                                }
+                              }}
                             />
                           </div>
                           <div className="sync-editor-text-row">
-                            <span className="sync-label">Tiếng Việt:</span>
                             <input 
                               type="text" 
                               className="sync-text-input" 
-                              value={syncingSegment.vietnamese || ''} 
-                              onChange={(e) => setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }))}
+                              placeholder="Sửa dịch phụ đề tiếng Việt..."
+                              value={followActiveSubtitleSync ? sub.vietnamese : (syncingSegment?.vietnamese || '')} 
+                              onChange={(e) => {
+                                if (followActiveSubtitleSync) {
+                                  handleSaveTimeSync(sub.index, sub.start, sub.end, sub.english, e.target.value);
+                                } else {
+                                  setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }));
+                                }
+                              }}
                             />
                           </div>
 
                           <div className="sync-editor-actions">
-                            <button className="btn-sync-cancel" onClick={() => setSyncingSegment(null)}>Hủy</button>
-                            <button className="btn-sync-save" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu vĩnh viễn</button>
+                            <button className="btn-sync-cancel" onClick={() => {
+                              if (followActiveSubtitleSync) {
+                                setFollowActiveSubtitleSync(false);
+                              } else {
+                                setSyncingSegment(null);
+                              }
+                            }}>{followActiveSubtitleSync ? 'Tắt Auto' : 'Hủy'}</button>
+                            {!followActiveSubtitleSync && (
+                              <button className="btn-sync-save" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu vĩnh viễn</button>
+                            )}
                           </div>
                         </div>
                       )}

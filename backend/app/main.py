@@ -1,9 +1,20 @@
 import os
 import csv
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from deep_translator import GoogleTranslator
+from dotenv import load_dotenv
+
+# Load API key từ .env (không bao giờ expose ra frontend)
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env'))
+
+from database import db
+
+# Khởi tạo SQLite database
+db.init_db()
 
 app = FastAPI(title="Friends Language Learning Center API")
 
@@ -122,23 +133,72 @@ def get_episodes():
             
     return data
 
+import urllib.request
+import urllib.parse
+import json
+
+def get_phonetic_and_pos(word: str):
+    # Only try for single words
+    if " " in word:
+        return None, None, None
+    try:
+        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{urllib.parse.quote(word)}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=1.2) as response:
+            data = json.loads(response.read().decode())
+            if data and isinstance(data, list):
+                entry = data[0]
+                ipa = entry.get("phonetic")
+                if not ipa and entry.get("phonetics"):
+                    for p in entry["phonetics"]:
+                        if p.get("text"):
+                            ipa = p["text"]
+                            break
+                audio = None
+                if entry.get("phonetics"):
+                    for p in entry["phonetics"]:
+                        if p.get("audio"):
+                            audio = p["audio"]
+                            break
+                
+                pos = "word"
+                if entry.get("meanings"):
+                    pos = entry["meanings"][0].get("partOfSpeech", "word")
+                
+                return ipa, pos, audio
+    except Exception:
+        pass
+    return None, None, None
+
 @app.get("/api/translate")
 def translate_word(word: str):
-    """Translates a word from English to Vietnamese and returns details."""
-    cleaned_word = "".join(c for c in word if c.isalnum() or c == "'").strip().lower()
+    """Translates a word or phrase from English to Vietnamese and returns details."""
+    # Preserve space for phrases, but strip outer whitespace
+    cleaned_word = "".join(c for c in word if c.isalnum() or c.isspace() or c == "'").strip()
+    # Normalize spaces: multiple spaces to single space
+    cleaned_word = " ".join(cleaned_word.split())
     if not cleaned_word:
-        raise HTTPException(status_code=400, detail="Invalid word")
+        raise HTTPException(status_code=400, detail="Invalid word/phrase")
     
     try:
         translator = GoogleTranslator(source='en', target='vi')
         translation = translator.translate(cleaned_word)
         
-        # In a full-blown app, we can also include pronunciation and word info
+        # Look up phonetic/pos/audio from Free Dictionary API if it is a single word
+        ipa, pos, audio_url = get_phonetic_and_pos(cleaned_word.lower())
+        
+        # Fallbacks
+        if not ipa:
+            ipa = f"/{cleaned_word}/" if " " not in cleaned_word else ""
+        if not pos:
+            pos = "phrase" if " " in cleaned_word else "word"
+            
         return {
             "word": cleaned_word,
             "translation": translation,
-            "ipa": f"/{cleaned_word}/", # Simplification or we can mock IPA/fetch it
-            "part_of_speech": "word"
+            "ipa": ipa,
+            "part_of_speech": pos,
+            "audio_url": audio_url
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -301,6 +361,102 @@ def update_subtitle_segment(payload: SubtitleUpdateSchema):
         f.write(final_content)
 
     return {"status": "success", "message": "Subtitle synced successfully"}
+
+# ─── AI Explain endpoint ────────────────────────────────────────────────────
+
+class ExplainRequest(BaseModel):
+    sentence: str          # Câu thoại tiếng Anh
+    vietnamese: str = ""  # Bản dịch tiếng Việt (tùy chọn, làm context)
+    word: str = ""         # Từ/cụm đang focus (tùy chọn)
+
+@app.post("/api/explain")
+async def explain_sentence(req: ExplainRequest):
+    """Dùng Gemini để giải thích ngữ pháp, idiom, slang của câu thoại (có Caching)."""
+    # 1. Kiểm tra cache SQLite trước
+    cached_data = db.get_ai_cached_explanation(req.sentence)
+    if cached_data:
+        return {"status": "ok", "data": cached_data, "cached": True}
+
+    # 2. Nếu chưa cache, gọi API Gemini
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY chưa được cấu hình")
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+
+        focus_part = f'\nTừ/cụm từ đang chú ý: "{req.word}"' if req.word else ""
+        viet_part = f'\nBản dịch tiếng Việt: "{req.vietnamese}"' if req.vietnamese else ""
+
+        prompt = f"""Bạn là từ điển giải thích ngữ cảnh của Google. Hãy phân tích câu thoại sau theo phong cách Google Dictionary (cực kỳ khoa học, rõ ràng, ngắn gọn):
+
+Câu thoại: "{req.sentence}"{viet_part}{focus_part}
+
+Hãy trả về JSON thuần túy (không markdown codeblock) có cấu trúc sau:
+{{
+  "translation": "Bản dịch tiếng Việt tự nhiên nhất của câu thoại trong văn cảnh phim này.",
+  "definition": "Nghĩa cốt lõi của câu thoại trong văn cảnh (ngắn gọn 1 câu).",
+  "tone": "Sắc thái giao tiếp (ví dụ: Thân mật, Mỉa mai, Lịch sự, Suồng sã). Tối đa 3 từ.",
+  "example": "Một câu ví dụ thực tế tương tự trong đời sống (bằng tiếng Anh).",
+  "example_translation": "Bản dịch tiếng Việt của câu ví dụ trên.",
+  "key_vocabulary": "Từ lóng hoặc cụm từ quan trọng nhất trong câu (nếu có, ví dụ: 'cụm từ' - 'nghĩa'), nếu không có ghi null."
+}}"""
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+
+        text = response.text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        data = json.loads(text.strip())
+        
+        # 3. Lưu vào SQLite cache để dùng lần sau
+        db.save_ai_explanation(req.sentence, data)
+        
+        return {"status": "ok", "data": data, "cached": False}
+
+    except json.JSONDecodeError:
+        return {"status": "ok", "data": {"meaning": response.text, "grammar": None, "idiom_slang": None, "alternatives": [], "tip": None}}
+    except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            raise HTTPException(status_code=429, detail="Đã hết quota Gemini hôm nay, thử lại ngày mai nhé!")
+        raise HTTPException(status_code=500, detail=f"Lỗi Gemini API: {error_msg}")
+
+
+# ─── Vocabulary DB API endpoints ──────────────────────────────────────────
+
+class VocabRequest(BaseModel):
+    word: str
+    ipa: str = ""
+    translation: str
+
+@app.get("/api/vocabulary")
+def get_vocabulary():
+    """Lấy danh sách từ vựng từ SQLite database"""
+    return {"status": "ok", "data": db.get_all_vocab()}
+
+@app.post("/api/vocabulary")
+def save_vocabulary(req: VocabRequest):
+    """Lưu từ vựng mới vào SQLite database"""
+    success = db.add_vocab(req.word, req.ipa, req.translation)
+    if not success:
+        raise HTTPException(status_code=500, detail="Không thể lưu từ vựng vào SQLite")
+    return {"status": "ok", "message": "Từ vựng được lưu thành công"}
+
+@app.delete("/api/vocabulary/{word}")
+def remove_vocabulary(word: str):
+    """Xóa từ vựng khỏi SQLite database"""
+    success = db.delete_vocab(word)
+    if not success:
+        raise HTTPException(status_code=500, detail="Không thể xóa từ vựng")
+    return {"status": "ok", "message": "Từ vựng đã được xóa"}
+
 
 if __name__ == "__main__":
     import uvicorn

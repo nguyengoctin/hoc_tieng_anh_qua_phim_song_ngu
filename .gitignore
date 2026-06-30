@@ -1,3 +1,8 @@
+# Environment variables (API keys - KHÔNG commit lên git!)
+.env
+.env.local
+.env.*.local
+
 # Project resources
 data/
 
