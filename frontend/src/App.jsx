@@ -50,6 +50,46 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Subtitle synchronization state
+  const [syncingSegment, setSyncingSegment] = useState(null); // { index, start, end, english, vietnamese }
+
+  const handleSaveTimeSync = (segmentIndex, newStart, newEnd, newEnglish, newVietnamese) => {
+    if (!currentEpisode) return;
+    fetch(`${API_BASE}/api/subtitles/update-segment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        episode_id: currentEpisode.id,
+        segment_index: segmentIndex,
+        new_start: parseFloat(newStart.toFixed(3)),
+        new_end: parseFloat(newEnd.toFixed(3)),
+        new_english: newEnglish,
+        new_vietnamese: newVietnamese
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Update local state subtitles to reflect changes instantly without page reload
+          setSubtitles(prev => prev.map(sub => {
+            if (sub.index === segmentIndex) {
+              return { ...sub, start: newStart, end: newEnd, english: newEnglish, vietnamese: newVietnamese };
+            }
+            return sub;
+          }));
+          setSyncingSegment(null);
+        } else {
+          alert('Không thể lưu đồng bộ phụ đề: ' + data.detail);
+        }
+      })
+      .catch(err => {
+        console.error('Error updating subtitles:', err);
+        alert('Lỗi kết nối khi đồng bộ phụ đề.');
+      });
+  };
+
   const saveSentence = (sub) => {
     if (!sub || !currentEpisode) return;
     const newSentence = {
@@ -460,39 +500,47 @@ function App() {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        if (subToUse) {
-          video.currentTime = subToUse.start;
-          video.play();
+        // Phím S: Lặp lại câu hiện tại (hoặc câu gần nhất vừa phát xong)
+        let subToRepeat = subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end);
+        if (!subToRepeat) {
+          // Nếu đang ở khoảng trống, lặp lại câu vừa kết thúc gần đây nhất
+          subToRepeat = [...subtitles].reverse().find(s => s.end <= video.currentTime);
+        }
+        if (subToRepeat) {
+          setPausedSub(null); // Clear lock
+          setRevealedIndices([]); // Reset đục lỗ của câu cũ
+          video.currentTime = subToRepeat.start;
+          video.play().then(() => setIsPlaying(true));
         }
       } else if (e.key === 'a' || e.key === 'A') {
-        if (subToUse) {
-          const currentIndex = subtitles.findIndex(s => s === subToUse);
-          if (currentIndex > 0) {
-            video.currentTime = subtitles[currentIndex - 1].start;
-            video.play();
+        // Phím A: Lùi về câu trước câu hiện tại
+        const currentSub = subtitles.find(s => video.currentTime >= s.start && video.currentTime <= s.end);
+        if (currentSub) {
+          const idx = subtitles.findIndex(s => s === currentSub);
+          if (idx > 0) {
+            setPausedSub(null);
+            setRevealedIndices([]);
+            video.currentTime = subtitles[idx - 1].start;
+            video.play().then(() => setIsPlaying(true));
           }
         } else {
-          // If in gap, find the last sub that ended before current time
-          const prevSub = [...subtitles].reverse().find(s => s.end < video.currentTime);
+          // Nếu ở khoảng trống, nhảy về câu bắt đầu trước thời điểm hiện tại
+          const prevSub = [...subtitles].reverse().find(s => s.start < video.currentTime);
           if (prevSub) {
+            setPausedSub(null);
+            setRevealedIndices([]);
             video.currentTime = prevSub.start;
-            video.play();
+            video.play().then(() => setIsPlaying(true));
           }
         }
       } else if (e.key === 'd' || e.key === 'D') {
-        if (subToUse) {
-          const currentIndex = subtitles.findIndex(s => s === subToUse);
-          if (currentIndex !== -1 && currentIndex < subtitles.length - 1) {
-            video.currentTime = subtitles[currentIndex + 1].start;
-            video.play();
-          }
-        } else {
-          // If in gap, find the first sub that starts after current time
-          const nextSub = subtitles.find(s => s.start > video.currentTime);
-          if (nextSub) {
-            video.currentTime = nextSub.start;
-            video.play();
-          }
+        // Phím D: Tiến tới câu tiếp theo
+        const nextSub = subtitles.find(s => s.start > video.currentTime + 0.1);
+        if (nextSub) {
+          setPausedSub(null);
+          setRevealedIndices([]);
+          video.currentTime = nextSub.start;
+          video.play().then(() => setIsPlaying(true));
         }
       } else if (e.key === 'ArrowLeft') {
         video.currentTime = Math.max(0, video.currentTime - 10);
@@ -1162,6 +1210,8 @@ function App() {
                       className={`transcript-item ${activeSidebarSub === sub ? 'active' : ''}`}
                       onClick={() => {
                         if (videoRef.current) {
+                          setPausedSub(null); // Clear lock phụ đề cũ
+                          setRevealedIndices([]); // Reset trạng thái đục lỗ của câu thoại cũ
                           videoRef.current.currentTime = sub.start;
                           videoRef.current.play().then(() => setIsPlaying(true));
                         }
@@ -1170,6 +1220,19 @@ function App() {
                       <div className="transcript-header-bar">
                         <span className="transcript-time">{formatTime(sub.start)}</span>
                         <div className="transcript-actions" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            className="btn-sub-copy-compact"
+                            onClick={() => setSyncingSegment({
+                              index: sub.index,
+                              start: sub.start,
+                              end: sub.end,
+                              english: sub.english,
+                              vietnamese: sub.vietnamese
+                            })}
+                            title="Chỉnh đồng bộ và sửa chữ câu thoại này"
+                          >
+                            ✏️
+                          </button>
                           <button 
                             className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
                             onClick={() => handleCopySubtitle(sub, index, 'raw')}
@@ -1201,6 +1264,49 @@ function App() {
                       </div>
                       <p className="transcript-en">{sub.english}</p>
                       <p className="transcript-vi">{sub.vietnamese}</p>
+
+                      {/* Subtitle Sync Editor Panel */}
+                      {syncingSegment && syncingSegment.index === sub.index && (
+                        <div className="sub-sync-editor-panel" onClick={(e) => e.stopPropagation()}>
+                          <div className="sync-editor-row">
+                            <span className="sync-label">Bắt đầu:</span>
+                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }))}>-0.1s</button>
+                            <span className="sync-time-val">{syncingSegment.start.toFixed(3)}s</span>
+                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }))}>+0.1s</button>
+                          </div>
+                          <div className="sync-editor-row">
+                            <span className="sync-label">Kết thúc:</span>
+                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }))}>-0.1s</button>
+                            <span className="sync-time-val">{syncingSegment.end.toFixed(3)}s</span>
+                            <button className="btn-sync-adjust" onClick={() => setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }))}>+0.1s</button>
+                          </div>
+                          
+                          {/* Text Inputs for English & Vietnamese */}
+                          <div className="sync-editor-text-row">
+                            <span className="sync-label">Tiếng Anh:</span>
+                            <input 
+                              type="text" 
+                              className="sync-text-input" 
+                              value={syncingSegment.english || ''} 
+                              onChange={(e) => setSyncingSegment(prev => ({ ...prev, english: e.target.value }))}
+                            />
+                          </div>
+                          <div className="sync-editor-text-row">
+                            <span className="sync-label">Tiếng Việt:</span>
+                            <input 
+                              type="text" 
+                              className="sync-text-input" 
+                              value={syncingSegment.vietnamese || ''} 
+                              onChange={(e) => setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }))}
+                            />
+                          </div>
+
+                          <div className="sync-editor-actions">
+                            <button className="btn-sync-cancel" onClick={() => setSyncingSegment(null)}>Hủy</button>
+                            <button className="btn-sync-save" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu vĩnh viễn</button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

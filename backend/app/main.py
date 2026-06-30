@@ -143,7 +143,164 @@ def translate_word(word: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+from typing import Optional
+from pydantic import BaseModel
 
+class SubtitleUpdateSchema(BaseModel):
+    episode_id: str
+    segment_index: int
+    new_start: float
+    new_end: float
+    new_english: Optional[str] = None
+    new_vietnamese: Optional[str] = None
+
+def format_vtt_time(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    ms = int(round((seconds - int(seconds)) * 1000))
+    if ms >= 1000:
+        secs += 1
+        ms -= 1000
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}.{ms:03d}"
+
+@app.post("/api/subtitles/update-segment")
+def update_subtitle_segment(payload: SubtitleUpdateSchema):
+    # Find the VTT file path inside SUBTITLES_DIR
+    target_file = None
+    for root, dirs, files in os.walk(SUBTITLES_DIR):
+        for file in files:
+            if os.path.splitext(file)[0].lower() == payload.episode_id.lower() and file.endswith(".vtt"):
+                target_file = os.path.join(root, file)
+                break
+        if target_file:
+            break
+            
+    if not target_file or not os.path.exists(target_file):
+        raise HTTPException(status_code=404, detail="Subtitle file not found")
+
+    # Read and parse VTT
+    with open(target_file, "r", encoding="utf-8") as f:
+        content = f.read().replace("\ufeff", "").replace("\r\n", "\n")
+
+    blocks = content.split("\n\n")
+    header = blocks[0]
+    
+    parsed_blocks = []
+    # Identify subtitle entries
+    for block in blocks[1:]:
+        lines = [line.strip() for line in block.split("\n") if line.strip()]
+        if not lines:
+            continue
+            
+        timestamp_idx = -1
+        for idx, line in enumerate(lines):
+            if "-->" in line:
+                timestamp_idx = idx
+                break
+                
+        if timestamp_idx == -1:
+            parsed_blocks.append({"type": "raw", "content": block})
+            continue
+
+        time_line = lines[timestamp_idx]
+        start_str, end_str = time_line.split("-->")
+        
+        def parse_vtt_seconds(t_str):
+            parts = t_str.strip().replace(",", ".").split(":")
+            seconds_parts = parts[2].split(".")
+            h = int(parts[0])
+            m = int(parts[1])
+            s = int(seconds_parts[0])
+            ms_val = int(seconds_parts[1]) if len(seconds_parts) > 1 else 0
+            return h * 3600 + m * 60 + s + ms_val / 1000
+
+        start = parse_vtt_seconds(startStr := start_str)
+        end = parse_vtt_seconds(endStr := end_str)
+        
+        index_val = int(lines[0]) if timestamp_idx > 0 and lines[0].isdigit() else (len(parsed_blocks) + 1)
+        
+        parsed_blocks.append({
+            "type": "subtitle",
+            "index": index_val,
+            "start": start,
+            "end": end,
+            "lines_before": lines[:timestamp_idx],
+            "lines_after": lines[timestamp_idx+1:],
+            "original_block": block
+        })
+
+    # Find the target segment by index (1-based index)
+    target_sub = None
+    sub_indices = []
+    for idx, block in enumerate(parsed_blocks):
+        if block["type"] == "subtitle":
+            sub_indices.append(idx)
+            if block["index"] == payload.segment_index:
+                target_sub = block
+
+    if not target_sub:
+        raise HTTPException(status_code=404, detail="Subtitle segment index not found")
+
+    # Update current segment
+    old_start = target_sub["start"]
+    target_sub["start"] = payload.new_start
+    target_sub["end"] = payload.new_end
+
+    # Update text lines if provided
+    if payload.new_english is not None:
+        if len(target_sub["lines_after"]) > 0:
+            target_sub["lines_after"][0] = payload.new_english
+        else:
+            target_sub["lines_after"].append(payload.new_english)
+            
+    if payload.new_vietnamese is not None:
+        if len(target_sub["lines_after"]) > 1:
+            target_sub["lines_after"][1] = payload.new_vietnamese
+        else:
+            while len(target_sub["lines_after"]) < 2:
+                target_sub["lines_after"].append("")
+            target_sub["lines_after"][1] = payload.new_vietnamese
+
+    # Apply Cascade Update Rule to neighbors
+    target_pos = sub_indices.index(parsed_blocks.index(target_sub))
+    
+    # 1. Update previous segment if they were adjacent (gap < 0.15s)
+    if target_pos > 0:
+        prev_sub = parsed_blocks[sub_indices[target_pos - 1]]
+        # Check gap between previous end and old start of current
+        prev_gap = old_start - prev_sub["end"]
+        if prev_gap < 0.15:
+            # Shift previous end automatically to maintain the seamless transition
+            prev_sub["end"] = payload.new_start - 0.05
+
+    # 2. Limit current end to avoid overlapping next segment
+    if target_pos < len(sub_indices) - 1:
+        next_sub = parsed_blocks[sub_indices[target_pos + 1]]
+        if target_sub["end"] > next_sub["start"]:
+            target_sub["end"] = next_sub["start"] - 0.05
+
+    # Reconstruct VTT file
+    new_blocks = [header]
+    for block in parsed_blocks:
+        if block["type"] == "raw":
+            new_blocks.append(block["content"])
+        else:
+            time_line = f"{format_vtt_time(block['start'])} --> {format_vtt_time(block['end'])}"
+            lines = []
+            if block["lines_before"]:
+                lines.extend(block["lines_before"])
+            else:
+                lines.append(str(block["index"]))
+            lines.append(time_line)
+            lines.extend(block["lines_after"])
+            new_blocks.append("\n".join(lines))
+
+    final_content = "\n\n".join(new_blocks) + "\n"
+    with open(target_file, "w", encoding="utf-8") as f:
+        f.write(final_content)
+
+    return {"status": "success", "message": "Subtitle synced successfully"}
 
 if __name__ == "__main__":
     import uvicorn

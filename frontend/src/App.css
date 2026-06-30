@@ -1085,5 +1085,115 @@ video {
   color: white;
 }
 
+/* Subtitle Sync Editor Panel styles */
+.sub-sync-editor-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sync-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sync-label {
+  font-size: 11px;
+  color: #8a8d98;
+  width: 50px;
+  font-weight: 600;
+}
+
+.sync-time-val {
+  font-family: monospace;
+  font-size: 12px;
+  color: #ffca4a;
+  min-width: 60px;
+  text-align: center;
+}
+
+.btn-sync-adjust {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-sync-adjust:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: white;
+}
+
+.sync-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-sync-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ccc;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-sync-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.btn-sync-save {
+  background: #e50914;
+  border: none;
+  color: white;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-sync-save:hover {
+  background: #f40a16;
+}
+
+.sync-editor-text-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.sync-text-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.sync-text-input:focus {
+  border-color: #e50914;
+  background: rgba(0, 0, 0, 0.5);
+}
+
 
 
