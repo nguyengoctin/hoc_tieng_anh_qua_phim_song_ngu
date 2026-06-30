@@ -1,6 +1,25 @@
-# Friends English Center
+# LingoFlix
 
 Hệ thống hỗ trợ học tiếng Anh giao tiếp qua phim bộ song ngữ thông qua phụ đề tương tác, bộ điều chỉnh độ lệch thời gian phụ đề, chế độ đục lỗ từ vựng và giải nghĩa ngữ cảnh bằng trí tuệ nhân tạo thông qua Gemini 2.5 Flash API.
+
+---
+
+## Giao Diện Ứng Dụng
+
+### Giao diện chính học tập
+![Giao diện chính](docs/main_interface.png)
+
+### Tra cứu từ vựng tương tác trực tiếp
+![Tra cứu từ vựng](docs/dictionary_lookup.png)
+
+### Trợ lý Giáo viên AI giải nghĩa ngữ cảnh
+![Trợ lý Giáo viên AI](docs/ai_explanation.png)
+
+### Sổ từ vựng cá nhân lưu trữ
+![Sổ từ vựng](docs/vocabulary_notebook.png)
+
+### Bộ công cụ biên tập và căn khớp phụ đề
+![Biên tập phụ đề](docs/subtitle_editor.png)
 
 ---
 
