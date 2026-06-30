@@ -1472,8 +1472,11 @@ function App() {
                     { 
                       element: '.study-controls-bar', 
                       popover: { 
-                        title: '⚡ Công cụ hỗ trợ học tập', 
-                        description: '• Tự động sửa: Mở khung chỉnh phụ đề theo video.\n• Tự dừng sau mỗi câu: Giúp bạn luyện nói đuổi (Shadowing) thuận tiện.\n• Đục lỗ: Ẩn bớt từ để bạn luyện phản xạ nghe và điền từ.',
+                        title: '⚡ Công cụ hỗ trợ học tập chuyên sâu', 
+                        description: 'Các tính năng nâng cao giúp bạn học chủ động:\n' +
+                          '• Tự động sửa: Tự động mở và cuộn kịch bản khớp theo mốc thời gian đang chạy, giúp bạn theo dõi song song hoặc sửa đổi tức thì.\n' +
+                          '• Tự dừng sau mỗi câu: Video tự động dừng khi kết thúc câu thoại. Bạn có thể cài đặt độ trễ (30%, 50% câu hoặc dừng hẳn) để có thời gian bắt chước nhại giọng (Shadowing) nhân vật.\n' +
+                          '• Đục lỗ (Cloze Test): Che bớt các từ trong phụ đề tiếng Anh theo tỷ lệ (30% - 100%). Hãy tự đoán từ và click vào khoảng trống để mở từ đó ra, rất tốt để rèn phản xạ nghe.',
                         side: "top", 
                         align: 'start' 
                       } 
