@@ -256,29 +256,65 @@ video {
   bottom: 76px;
   left: 30px;
   right: 30px;
-  height: 4px;
-  background: rgba(255,255,255,0.25);
-  border-radius: 2px;
+  height: 12px; /* Tăng chiều cao để tăng hitbox */
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
   z-index: 7;
   opacity: 0;
+  transition: opacity 0.2s ease;
+  background: transparent; /* Lớp đệm trong suốt */
 }
 
 .progress-bar-container.visible {
   opacity: 1;
 }
 
-.video-container:hover .progress-bar-container.visible {
+/* Thanh nền thực tế */
+.progress-bar-container::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  transition: height 0.1s ease;
+}
+
+.video-container:hover .progress-bar-container::before {
   height: 6px;
-  bottom: 75px;
 }
 
 .progress-bar-fill {
-  height: 100%;
+  height: 4px;
   background: #e50914;
   border-radius: 2px;
   position: relative;
+  transition: height 0.1s ease;
+}
+
+.video-container:hover .progress-bar-fill {
+  height: 6px;
+}
+
+/* Núm tròn (handle knob) khi hover */
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 12px;
+  height: 12px;
+  background: #e50914;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+  transition: transform 0.1s cubic-bezier(0.2, 1, 0.2, 1);
+}
+
+.video-container:hover .progress-bar-container:hover .progress-bar-fill::after {
+  transform: translateY(-50%) scale(1.2);
 }
 
 /* Big center play icon when paused */
@@ -1013,6 +1049,40 @@ video {
   color: #747d8c;
   text-align: center;
   margin-top: 30px;
+}
+
+/* Sidebar compact copy actions */
+.transcript-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sub-copy-compact {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ccc;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.15s ease;
+  min-width: 32px;
+  text-align: center;
+  outline: none;
+}
+
+.btn-sub-copy-compact:hover {
+  background: #f40a16;
+  border-color: #f40a16;
+  color: white;
+}
+
+.btn-sub-copy-compact.copied {
+  background: #2ec4b6;
+  border-color: #2ec4b6;
+  color: white;
 }
 
 

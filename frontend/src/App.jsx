@@ -249,24 +249,6 @@ function App() {
     }
   }, [activeSub, pausedSub]);
 
-  // Auto-resume playing in blanking mode when all blanked words of the current sentence are revealed
-  useEffect(() => {
-    const subToUse = pausedSub || activeSub;
-    if (subToUse && blankLevel > 0 && Number(shadowingDelay) !== -99 && Number(shadowingDelay) !== 999) {
-      const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
-      if (blankedSet.size > 0 && revealedIndices.length === blankedSet.size) {
-        // All blanked words are revealed! Auto-resume play after 800ms reading time buffer
-        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-        resumeTimeoutRef.current = setTimeout(() => {
-          if (videoRef.current && videoRef.current.paused) {
-            setPausedSub(null); // clear lock
-            videoRef.current.play().then(() => setIsPlaying(true));
-          }
-        }, 800);
-      }
-    }
-  }, [revealedIndices, activeSub, pausedSub, blankLevel, shadowingDelay]);
-
 
 
 
@@ -362,6 +344,16 @@ function App() {
         });
       }
     });
+
+    // Optimize subtitle timestamps for shadowing experience (Always maximize to safe tight edge)
+    for (let i = 0; i < parsed.length; i++) {
+      const current = parsed[i];
+      if (i < parsed.length - 1) {
+        const next = parsed[i + 1];
+        // Đặt điểm kết thúc của câu hiện tại bằng sát mép an toàn trước câu kế tiếp
+        current.end = next.start - 0.05;
+      }
+    }
 
     setSubtitles(parsed);
   };
@@ -504,9 +496,22 @@ function App() {
         if (subToUse) {
           const blankedSet = getBlankedIndices(subToUse.english, blankLevel);
           const blankedArray = Array.from(blankedSet).sort((a, b) => a - b);
-          const nextToReveal = blankedArray.find(idx => !revealedIndices.includes(idx));
-          if (nextToReveal !== undefined) {
-            setRevealedIndices(prev => [...prev, nextToReveal]);
+          
+          if (blankedArray.length > 0) {
+            const allRevealed = blankedArray.every(idx => revealedIndices.includes(idx));
+            if (allRevealed) {
+              // If all are already revealed, pressing Tab again resumes the video!
+              if (video && video.paused) {
+                setPausedSub(null); // clear lock before playing
+                video.play().then(() => setIsPlaying(true));
+              }
+            } else {
+              // Otherwise, reveal the next word
+              const nextToReveal = blankedArray.find(idx => !revealedIndices.includes(idx));
+              if (nextToReveal !== undefined) {
+                setRevealedIndices(prev => [...prev, nextToReveal]);
+              }
+            }
           }
         }
       }
@@ -576,8 +581,8 @@ function App() {
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
-    // Keep displaying the ended subtitle during the 120ms grace period to prevent flickering/jumping if the next sub starts immediately
-    const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.12);
+    // Keep displaying the ended subtitle for a tiny window (50ms) to ensure smooth transition
+    const justEnded = subtitles.find(s => time >= s.end && time < s.end + 0.05);
 
     if (justEnded) {
       setActiveSub(justEnded);
@@ -588,9 +593,9 @@ function App() {
       setActiveSub(null);
     }
 
-    // Shadowing / Auto-pause: check if any subtitle has just ended (+0.12s past the end to let voice trail finish)
+    // Shadowing / Auto-pause: check if any subtitle has just ended (trigger immediately at s.end)
     if (Number(shadowingDelay) !== -99) {
-      const endedSub = subtitles.find(s => time >= s.end + 0.12 && time <= s.end + 0.8);
+      const endedSub = subtitles.find(s => time >= s.end && time <= s.end + 0.5);
       if (endedSub && lastSubIndexRef.current !== endedSub.start) {
         lastSubIndexRef.current = endedSub.start; // mark as paused for this sub
         setPausedSub(endedSub); // lock this sub on screen
@@ -717,10 +722,10 @@ function App() {
   };
 
   const handleTimelineClick = (e) => {
-    const rect = e.target.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const width = rect.width;
-    const clickPercentage = clickX / width;
+    const clickPercentage = Math.max(0, Math.min(1, clickX / width));
     const targetTime = clickPercentage * duration;
     
     if (videoRef.current) {
