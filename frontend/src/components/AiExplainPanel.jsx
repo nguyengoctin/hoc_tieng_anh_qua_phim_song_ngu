@@ -14,14 +14,9 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
       </button>
       <div className="ai-explain-body" style={{ paddingTop: '10px' }}>
         <p className="ai-explain-sentence"><strong>Câu thoại:</strong> "{aiPanelSentence}"</p>
-        {aiPanelTranslation && (
-          <p className="ai-explain-translation" style={{ marginBottom: aiPanel.data?.translation ? '4px' : '20px' }}>
-            <strong>Phụ đề gốc:</strong> {aiPanelTranslation}
-          </p>
-        )}
         {!aiPanel.loading && !aiPanel.error && aiPanel.data?.translation && (
-          <p className="ai-explain-translation" style={{ color: '#8ab4f8', marginBottom: '20px' }}>
-            <strong>AI dịch nghĩa:</strong> {aiPanel.data.translation}
+          <p className="ai-explain-translation" style={{ color: '#ffca4a', marginBottom: '20px' }}>
+            <strong>Dịch nghĩa:</strong> {aiPanel.data.translation}
           </p>
         )}
         {aiPanel.loading ? (
