@@ -1,4 +1,5 @@
 import React from 'react';
+import { HelpCircle } from 'lucide-react';
 
 export default function StudyControls({
   startTour,
@@ -36,7 +37,6 @@ export default function StudyControls({
           <span className="compact-switch-slider"></span>
           <span className="setting-label">Tự động sửa</span>
         </label>
-
       </div>
 
       <div className="study-bar-center">
@@ -80,8 +80,14 @@ export default function StudyControls({
           className="btn-help-bottom-toggle"
           onClick={startTour}
           title="Xem hướng dẫn sử dụng nhanh"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
-          ❓ Hướng dẫn
+          <HelpCircle size={14} style={{ marginRight: '6px' }} />
+          Hướng dẫn
         </button>
       </div>
     </div>
