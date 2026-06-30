@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
+import { Play, Pause, RotateCcw, RotateCw, Subtitles, Menu } from 'lucide-react';
 import './App.css';
 import AiExplainPanel from './components/AiExplainPanel';
 import StudyControls from './components/StudyControls';
@@ -754,7 +757,7 @@ function App() {
     }
 
     // Shadowing / Auto-pause: check if any subtitle has just ended
-    const shouldPause = (Number(shadowingDelay) !== -99) || (blankLevel > 0 && autoPauseOnBlankRef.current);
+    const shouldPause = (Number(shadowingDelay) !== -99);
     if (shouldPause) {
       const endedSub = subtitles.find(s => time >= s.end && time <= s.end + 0.5);
       // Bỏ qua mọi subtitle kết thúc tại/trước thời điểm seek — tránh false trigger khi replay
@@ -765,17 +768,24 @@ function App() {
         video.pause();
         setIsPlaying(false);
 
-        // Check if there are blanked words and auto-pause is on
-        if (blankLevel > 0 && autoPauseOnBlankRef.current) {
+        // Check if there are blanked words and auto-pause is enabled via shadowingDelay
+        if (blankLevel > 0) {
           const blankedSet = getBlankedIndices(endedSub.english, blankLevel);
           if (blankedSet.size > 0) {
             const blankedArray = Array.from(blankedSet);
             const allRevealed = blankedArray.every(idx => revealedIndicesRef.current.includes(idx));
             if (!allRevealed) {
-              // Stay paused until all blanked words are revealed via Tab/clicks!
+              // Phải nhấn Tab hoặc click giải đố hết các ô trống thì video mới chạy tiếp
               return;
             }
           }
+        }
+
+        // Nếu là mức 0% (Chỉ dừng giải đố đục lỗ)
+        if (Number(shadowingDelay) === 0) {
+          setPausedSub(null);
+          video.play().then(() => setIsPlaying(true));
+          return;
         }
 
         // Nếu dừng tự nói là Dừng hẳn
@@ -783,13 +793,7 @@ function App() {
           return;
         }
 
-        // Nếu dừng tự nói là Tắt (-99) nhưng bị dừng do đục lỗ và đã giải hết -> chạy tiếp luôn không delay
-        if (Number(shadowingDelay) === -99) {
-          setPausedSub(null);
-          video.play().then(() => setIsPlaying(true));
-          return;
-        }
-
+        // Tính thời gian dừng theo tỷ lệ % độ dài câu thoại (ví dụ: shadowingDelay = 0.5 tương đương 50% độ dài câu thoại)
         const segmentDuration = endedSub.end - endedSub.start;
         const totalPauseSeconds = Math.max(0.5, segmentDuration * shadowingDelay);
 
@@ -1319,7 +1323,7 @@ function App() {
             {/* Big center play icon when paused */}
             {!isPlaying && (
               <div className="center-play-button" onClick={togglePlay}>
-                ▶
+                <Play size={48} fill="#fff" />
               </div>
             )}
 
@@ -1334,13 +1338,13 @@ function App() {
             <div className={`video-controls ${controlsVisible ? 'visible' : ''}`}>
               <div className="controls-left">
                 <button className="btn-ctrl" onClick={togglePlay}>
-                  {isPlaying ? '⏸' : '▶'}
+                  {isPlaying ? <Pause size={16} fill="#dfdfdf" /> : <Play size={16} fill="#dfdfdf" />}
                 </button>
-                <button className="btn-ctrl" onClick={() => skipTime(-10)} title="Rewind 10s">
-                  ↩ 10s
+                <button className="btn-ctrl" onClick={() => skipTime(-10)} title="Tua lại 10s">
+                  <RotateCcw size={16} /> <span style={{fontSize: '11px', marginLeft: '4px'}}>10s</span>
                 </button>
-                <button className="btn-ctrl" onClick={() => skipTime(10)} title="Forward 10s">
-                  ↪ 10s
+                <button className="btn-ctrl" onClick={() => skipTime(10)} title="Tua tiếp 10s">
+                  <RotateCw size={16} /> <span style={{fontSize: '11px', marginLeft: '4px'}}>10s</span>
                 </button>
                 <span className="time-display">
                   {formatTime(currentTime)} / {formatTime(duration)}
@@ -1371,13 +1375,14 @@ function App() {
                     onClick={() => setShowSubMenu(!showSubMenu)}
                     title="Cài đặt phụ đề"
                   >
-                    💬 Phụ đề
+                    <Subtitles size={16} style={{ marginRight: '6px' }} />
+                    Phụ đề
                   </button>
                   {showSubMenu && (
                     <div className="cc-dropdown-menu">
                       <div className="cc-menu-title">Tùy chỉnh phụ đề</div>
                       <label className="cc-menu-item">
-                        <span>🇺🇸 Tiếng Anh</span>
+                        <span>Tiếng Anh</span>
                         <div className="premium-switch">
                           <input 
                             type="checkbox" 
@@ -1388,7 +1393,7 @@ function App() {
                         </div>
                       </label>
                       <label className="cc-menu-item">
-                        <span>🇻🇳 Tiếng Việt</span>
+                        <span>Tiếng Việt</span>
                         <div className="premium-switch">
                           <input 
                             type="checkbox" 
@@ -1407,7 +1412,8 @@ function App() {
                   onClick={() => setShowSidebar(!showSidebar)}
                   title="Bật/Tắt kịch bản phim"
                 >
-                  ☰ Kịch bản
+                  <Menu size={16} style={{ marginRight: '6px' }} />
+                  Kịch bản
                 </button>
               </div>
             </div>
@@ -1415,6 +1421,77 @@ function App() {
 
           {/* Study Controls Bar Component */}
           <StudyControls 
+            startTour={() => {
+              setShowSidebar(true);
+              setSidebarTab('script');
+              setTimeout(() => {
+                const d = driver({
+                  showProgress: true,
+                  animate: true,
+                  allowClose: true,
+                  nextBtnText: 'Tiếp tục',
+                  prevBtnText: 'Quay lại',
+                  doneBtnText: 'Hoàn tất',
+                  steps: [
+                    { 
+                      element: '.subtitles-overlay', 
+                      popover: { 
+                        title: '🔍 Tra cứu từ vựng tức thì', 
+                        description: 'Chỉ cần click chuột trực tiếp vào bất kỳ từ nào trên phụ đề video. Hệ thống sẽ ngay lập tức dịch nghĩa, phát âm từ đó và cho phép bạn thêm nhanh vào Sổ từ vựng.',
+                        side: "top", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.sidebar-selectors', 
+                      popover: { 
+                        title: '🎬 Chọn Phim & Tập', 
+                        description: 'Dễ dàng chuyển đổi giữa các bộ phim, mùa (season) và các tập phim khác nhau. Các tập đã xem sẽ có ký hiệu tích chọn (✓) để theo dõi tiến độ.',
+                        side: "left", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.transcript-list', 
+                      popover: { 
+                        title: '📝 Kịch bản & Tương tác câu thoại', 
+                        description: 'Click vào bất kỳ câu thoại nào để tua video đến phân cảnh đó. Bạn có thể lưu câu thoại, yêu cầu Giáo viên AI giải nghĩa chi tiết ngữ cảnh/thành ngữ hoặc chỉnh sửa thời gian khớp phụ đề.',
+                        side: "left", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.sidebar-tabs', 
+                      popover: { 
+                        title: '⭐ Sổ Từ vựng & Câu đã lưu', 
+                        description: 'Nơi lưu trữ và ôn tập. Bạn có thể nghe lại phát âm, ôn tập nghĩa của từ, hoặc nhấn nút Play ở từng câu đã lưu để luyện nghe đi nghe lại câu đó.',
+                        side: "left", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.study-controls-bar', 
+                      popover: { 
+                        title: '⚡ Công cụ hỗ trợ học tập', 
+                        description: '• Tự động sửa: Mở khung chỉnh phụ đề theo video.\n• Tự dừng sau mỗi câu: Giúp bạn luyện nói đuổi (Shadowing) thuận tiện.\n• Đục lỗ: Ẩn bớt từ để bạn luyện phản xạ nghe và điền từ.',
+                        side: "top", 
+                        align: 'start' 
+                      } 
+                    },
+                    { 
+                      element: '.btn-help-bottom-toggle', 
+                      popover: { 
+                        title: '⌨️ Hệ thống Phím tắt Phản xạ', 
+                        description: '• Space: Tạm dừng / Phát video\n• Phím S: Phát lại câu thoại hiện tại\n• Phím A / D: Lùi về câu trước hoặc tiến tới câu sau nhanh chóng.',
+                        side: "top", 
+                        align: 'end' 
+                      } 
+                    }
+                  ]
+                });
+                d.drive();
+              }, 200);
+            }}
             followActiveSubtitleSync={followActiveSubtitleSync}
             setFollowActiveSubtitleSync={setFollowActiveSubtitleSync}
             setShowSidebar={setShowSidebar}
@@ -1427,8 +1504,6 @@ function App() {
             setShadowingDelay={setShadowingDelay}
             blankLevel={blankLevel}
             setBlankLevel={setBlankLevel}
-            autoPauseOnBlank={autoPauseOnBlank}
-            setAutoPauseOnBlank={setAutoPauseOnBlank}
           />
 
           {/* AI Explain Panel Component */}
