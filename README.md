@@ -65,15 +65,15 @@ python scripts/download_season.py [-w SHOW] [-s SEASON] [-u URL] [-p PREFIX]
 | Tham số | Ý Nghĩa | Giá trị mặc định | Ví dụ |
 | :--- | :--- | :--- | :--- |
 | `-w`, `--show` | Thư mục của phim trong thư mục `data/` | `friends` | `-w the_office` |
-| `-s`, `--season` | Số season của bộ phim cần tải | `2` | `-s 1` |
+| `-s`, `--season` | Số season của bộ phim cần tải | `1` | `-s 2` |
 | `-u`, `--url` | Link trang Toomva chứa danh sách tập phim (Scrape tự động) | *Tự động nhận diện* | `-u https://toomva.com/...` |
 | `-p`, `--prefix` | Tiền tố tên file video/subtitle lưu trên máy | *Tự động theo phim* | `-p TheOffice` |
 
 ### Ví dụ sử dụng:
 
-*   **Tải Season 2 của phim Friends (mặc định):**
+*   **Tải Season 1 của phim Friends (mặc định):**
     ```bash
-    python scripts/download_season.py -s 2
+    python scripts/download_season.py -s 1
     ```
 *   **Tải Season 1 của phim Silicon Valley:**
     ```bash

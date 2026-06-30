@@ -374,7 +374,7 @@ def process_episode(idx, url, dest_video_dir, dest_vtt_dir, season, show_prefix)
 def main():
     parser = argparse.ArgumentParser(description="Unified Show & Season Downloader")
     parser.add_argument("-w", "--show", type=str, default="friends", help="Show directory name (default: 'friends')")
-    parser.add_argument("-s", "--season", type=str, default="2", help="Season number (default: '2')")
+    parser.add_argument("-s", "--season", type=str, default="1", help="Season number (default: '1')")
     parser.add_argument("-u", "--url", type=str, default=None, help="Optional URL to automatically scrape episode links from")
     parser.add_argument("-p", "--prefix", type=str, default=None, help="Filename prefix (e.g. 'Friends' or 'SiliconValley')")
     args = parser.parse_args()
