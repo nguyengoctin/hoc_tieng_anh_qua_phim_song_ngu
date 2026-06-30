@@ -1422,29 +1422,9 @@ function App() {
           {/* Study Controls Bar Component */}
           <StudyControls 
             startTour={() => {
-              // 1. Lưu trữ dữ liệu gốc để khôi phục sau khi tắt hướng dẫn
-              const originalVocab = [...savedVocab];
-              const originalSentences = [...savedSentences];
-              const originalSubtitles = [...subtitles];
+              // 1. Lưu trữ trạng thái giao diện gốc để khôi phục khi kết thúc
               const originalSyncing = syncingSegment;
               const originalAiPanel = aiPanel;
-
-              // 2. Tạo dữ liệu giả lập chất lượng cao cho việc demo
-              const mockSubs = [
-                { index: 1, start: 5.0, end: 7.2, english: "Not too bad, thanks!", vietnamese: "Cũng không tệ lắm, cảm ơn!" },
-                { index: 2, start: 8.5, end: 12.0, english: "How's everything going at work?", vietnamese: "Mọi thứ ở chỗ làm thế nào rồi?" }
-              ];
-              const mockVocab = [
-                { word: "hang out", ipa: "/hæŋ aʊt/", part_of_speech: "verb", translation: "dành thời gian đi chơi, tụ tập" },
-                { word: "candid", ipa: "/ˈkændɪd/", part_of_speech: "adjective", translation: "thật thà, thẳng thắn" }
-              ];
-              const mockSentences = [
-                { id: "mock_1", episodeTitle: "Friends S01E01", start: 5.0, end: 7.2, english: "Not too bad, thanks!", vietnamese: "Cũng không tệ lắm, cảm ơn!" }
-              ];
-
-              if (subtitles.length === 0) setSubtitles(mockSubs);
-              if (savedVocab.length === 0) setSavedVocab(mockVocab);
-              if (savedSentences.length === 0) setSavedSentences(mockSentences);
 
               setShowSidebar(true);
               setSidebarTab('script');
@@ -1459,9 +1439,6 @@ function App() {
                   doneBtnText: 'Hoàn tất',
                   onDestroyed: () => {
                     // Khôi phục lại trạng thái ban đầu của người dùng khi tắt Tour
-                    setSavedVocab(originalVocab);
-                    setSavedSentences(originalSentences);
-                    setSubtitles(originalSubtitles);
                     setSyncingSegment(originalSyncing);
                     setAiPanel(originalAiPanel);
                   },
@@ -1495,14 +1472,15 @@ function App() {
                       onHighlightStarted: () => {
                         setSidebarTab('script');
                         setAiPanel(null);
-                        const activeSubs = subtitles.length > 0 ? subtitles : mockSubs;
-                        setSyncingSegment({
-                          index: activeSubs[0].index,
-                          start: activeSubs[0].start,
-                          end: activeSubs[0].end,
-                          english: activeSubs[0].english,
-                          vietnamese: activeSubs[0].vietnamese
-                        });
+                        if (subtitles.length > 0) {
+                          setSyncingSegment({
+                            index: subtitles[0].index,
+                            start: subtitles[0].start,
+                            end: subtitles[0].end,
+                            english: subtitles[0].english,
+                            vietnamese: subtitles[0].vietnamese
+                          });
+                        }
                       }
                     },
                     { 
@@ -1515,20 +1493,21 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('script');
-                        const activeSubs = subtitles.length > 0 ? subtitles : mockSubs;
-                        setAiPanel({
-                          loading: false,
-                          error: null,
-                          applied: false,
-                          segmentIndex: activeSubs[0].index,
-                          start: activeSubs[0].start,
-                          end: activeSubs[0].end,
-                          english: activeSubs[0].english,
-                          data: {
-                            translation: activeSubs[0].vietnamese,
-                            explanation: `### Giáo viên AI giải thích:\n\n- **${activeSubs[0].english}**:\n- Dịch nghĩa: ${activeSubs[0].vietnamese}\n- Đây là câu thoại thực tế từ phim. Bạn có thể nghe phát âm, học từ vựng hoặc nhấn nút *Áp dụng kịch bản* để cập nhật bản dịch này làm phụ đề chính.`
-                          }
-                        });
+                        if (subtitles.length > 0) {
+                          setAiPanel({
+                            loading: false,
+                            error: null,
+                            applied: false,
+                            segmentIndex: subtitles[0].index,
+                            start: subtitles[0].start,
+                            end: subtitles[0].end,
+                            english: subtitles[0].english,
+                            data: {
+                              translation: subtitles[0].vietnamese,
+                              explanation: `### Giáo viên AI giải thích:\n\n- **${subtitles[0].english}**:\n- Dịch nghĩa: ${subtitles[0].vietnamese}\n- Đây là câu thoại thực tế từ phim được tải từ cơ sở dữ liệu SQLite.`
+                            }
+                          });
+                        }
                       }
                     },
                     { 
@@ -1573,10 +1552,10 @@ function App() {
                       }
                     },
                     { 
-                      element: '.tour-auto-edit', 
+                      element: '.study-bar-left', 
                       popover: { 
-                        title: '🔄 Tự động sửa phụ đề', 
-                        description: 'Bật tính năng này để kịch bản bên phải tự động cuộn và hiển thị panel chỉnh sửa phụ đề bám sát câu thoại đang phát. Giúp bạn phát hiện và sửa lỗi lệch phụ đề tức thời.',
+                        title: '⚙️ Quản lý tiến trình & Biên tập', 
+                        description: '• Tự động sửa: Tự động mở kịch bản và bảng biên tập phụ đề bám sát câu thoại đang phát để sửa đổi nhanh.\n• Đã xem: Đánh dấu đã học xong tập phim này.',
                         side: "top", 
                         align: 'start' 
                       },
@@ -1587,28 +1566,10 @@ function App() {
                       }
                     },
                     { 
-                      element: '.tour-watched-status', 
+                      element: '.study-bar-center', 
                       popover: { 
-                        title: '✓ Đánh dấu đã học xong', 
-                        description: 'Tích chọn khi bạn đã hoàn thành việc xem và học tập phim này để dễ dàng theo dõi lộ trình học tập của mình.',
-                        side: "top", 
-                        align: 'start' 
-                      } 
-                    },
-                    { 
-                      element: '.tour-shadowing', 
-                      popover: { 
-                        title: '🗣️ Tự dừng sau mỗi câu', 
-                        description: 'Video tự động dừng khi kết thúc câu thoại. Bạn có thể chỉnh thời gian chờ ở các mức độ khác nhau để có đủ thời gian bắt chước và nhại giọng nói theo nhân vật trước khi tự động chạy tiếp.',
-                        side: "top", 
-                        align: 'start' 
-                      } 
-                    },
-                    { 
-                      element: '.tour-blanking', 
-                      popover: { 
-                        title: '🧩 Đục lỗ luyện phản xạ', 
-                        description: 'Ẩn bớt các từ trong phụ đề tiếng Anh theo các cấp độ từ 30% đến 100%. Hãy tự đoán từ và click chuột hoặc nhấn phím Tab để mở từ đó ra, giúp rèn luyện khả năng ghi nhớ từ vựng.',
+                        title: '🗣️ Luyện nghe nói phản xạ chuyên sâu', 
+                        description: '• Tự dừng sau mỗi câu: Video tự tạm dừng ở cuối câu để bạn luyện Shadowing nhại giọng.\n• Đục lỗ: Che chữ phụ đề theo tỷ lệ để rèn luyện phản xạ đoán từ.',
                         side: "top", 
                         align: 'start' 
                       } 
