@@ -19,8 +19,8 @@ echo "============================================="
 echo "1. Đang khởi chạy Backend (Port: 8000)..."
 cd "$PROJECT_ROOT"
 source venv/bin/activate
-cd backend/app
-python3 main.py &
+cd backend
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 
 # 2. Chạy Frontend (Vite)
