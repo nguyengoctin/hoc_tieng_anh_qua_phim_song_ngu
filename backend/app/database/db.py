@@ -79,6 +79,8 @@ def delete_vocab(word: str):
 # --- AI Cache Helpers ---
 
 def get_ai_cached_explanation(sentence: str):
+    if not sentence:
+        return None
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT response_json FROM ai_cache WHERE sentence = ?", (sentence.strip(),))
@@ -92,6 +94,8 @@ def get_ai_cached_explanation(sentence: str):
     return None
 
 def save_ai_explanation(sentence: str, explanation_dict: dict):
+    if not sentence:
+        return False
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
