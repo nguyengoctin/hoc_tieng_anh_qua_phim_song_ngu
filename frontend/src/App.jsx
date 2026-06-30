@@ -158,49 +158,7 @@ function App() {
       }
     }
   };
-  // Subtitle Hotkeys Handler
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      const video = videoRef.current;
-      if (!video) return;
-
-      const time = video.currentTime;
-
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        e.preventDefault();
-        const current = subtitles.find(s => time >= s.start && time <= s.end);
-        if (current) {
-          const currentIdx = subtitles.indexOf(current);
-          if (time - current.start < 1.5 && currentIdx > 0) {
-            video.currentTime = subtitles[currentIdx - 1].start;
-          } else {
-            video.currentTime = current.start;
-          }
-        } else {
-          const prev = [...subtitles].reverse().find(s => s.end < time);
-          if (prev) {
-            video.currentTime = prev.start;
-          }
-        }
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        e.preventDefault();
-        const next = subtitles.find(s => s.start > time);
-        if (next) {
-          video.currentTime = next.start;
-        }
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        togglePlay();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [subtitles, isPlaying]);
+  // Keydown handling has been consolidated into a single keyboard shortcut handler below.
 
   const toggleWatched = (epId) => {
     if (!epId) return;
@@ -549,10 +507,14 @@ function App() {
     return blankedIndices;
   };
 
-  // Keyboard shortcut handlers
+  // Keyboard shortcut handlers (Consolidated and optimized)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      // Don't trigger shortcuts when typing in input, textarea, select, or contenteditable
+      const targetTag = e.target?.tagName;
+      if (targetTag === 'INPUT' || targetTag === 'SELECT' || targetTag === 'TEXTAREA' || e.target?.isContentEditable) {
+        return;
+      }
 
       const video = videoRef.current;
       if (!video) return;
@@ -563,7 +525,7 @@ function App() {
         e.preventDefault();
         togglePlay();
       } else if (e.key === 's' || e.key === 'S' || e.key === 'r' || e.key === 'R') {
-        // Phím S: Phát lại câu đang hiển thị — tìm hoàn toàn theo video.currentTime để tránh stale state
+        // Phím S/R: Phát lại câu đang hiển thị — tìm hoàn toàn theo video.currentTime để tránh stale state
         const t = video.currentTime;
         const subToRepeat = subtitles.find(s => t >= s.start && t <= s.end)
           || [...subtitles].reverse().find(s => s.end <= t);
@@ -628,7 +590,8 @@ function App() {
           const blankedArray = Array.from(blankedSet).sort((a, b) => a - b);
           
           if (blankedArray.length > 0) {
-            const allRevealed = blankedArray.every(idx => revealedIndices.includes(idx));
+            const currentRevealed = revealedIndicesRef.current;
+            const allRevealed = blankedArray.every(idx => currentRevealed.includes(idx));
             if (allRevealed) {
               // If all are already revealed, pressing Tab again resumes the video!
               if (video && video.paused) {
@@ -636,10 +599,12 @@ function App() {
                 video.play().then(() => setIsPlaying(true));
               }
             } else {
-              // Otherwise, reveal the next word
-              const nextToReveal = blankedArray.find(idx => !revealedIndices.includes(idx));
+              // Otherwise, reveal the next word (updating ref synchronously to prevent race conditions on fast tab)
+              const nextToReveal = blankedArray.find(idx => !currentRevealed.includes(idx));
               if (nextToReveal !== undefined) {
-                setRevealedIndices(prev => [...prev, nextToReveal]);
+                const nextIndices = [...currentRevealed, nextToReveal];
+                revealedIndicesRef.current = nextIndices;
+                setRevealedIndices(nextIndices);
               }
             }
           }
@@ -649,7 +614,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeSub, pausedSub, subtitles, duration, blankLevel, revealedIndices, activeSidebarSub]);
+  }, [activeSub, pausedSub, subtitles, duration, blankLevel, activeSidebarSub]);
 
   // Netflix-style control bar auto-hide
   const handleMouseMove = () => {
@@ -1091,6 +1056,12 @@ function App() {
     if (videoRef.current) {
       videoRef.current.currentTime = targetTime;
       setCurrentTime(targetTime);
+      
+      // Update pausedSub immediately if the video is paused
+      if (videoRef.current.paused) {
+        const newSub = subtitles.find(s => targetTime >= s.start && targetTime <= s.end);
+        setPausedSub(newSub || null);
+      }
     }
   };
 
@@ -1168,7 +1139,9 @@ function App() {
           onClick={(e) => {
             e.stopPropagation();
             if (isShowingPlaceholder) {
-              setRevealedIndices(prev => [...prev, idx]);
+              const nextIndices = [...revealedIndicesRef.current, idx];
+              revealedIndicesRef.current = nextIndices;
+              setRevealedIndices(nextIndices);
             } else if (!dragOccurred) {
               // Nếu chỉ click bình thường vào một từ (không phải kéo thả để chọn cụm từ)
               const rect = e.currentTarget.getBoundingClientRect();
@@ -1249,7 +1222,17 @@ function App() {
                 onTimeUpdate={handleTimeUpdate}
                 onDurationChange={() => setDuration(videoRef.current?.duration || 0)}
                 onClick={togglePlay}
-                onPlay={() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }}
+                onPlay={() => {
+                  setIsPlaying(true);
+                  setPausedSub(null);
+                  if (videoRef.current) videoRef.current.playbackRate = playbackSpeed;
+                }}
+                onPause={() => {
+                  setIsPlaying(false);
+                  if (videoRef.current && activeSub) {
+                    setPausedSub(activeSub);
+                  }
+                }}
                 onLoadedMetadata={() => {
                   if (videoRef.current) {
                     videoRef.current.playbackRate = playbackSpeed;
