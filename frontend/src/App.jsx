@@ -1446,7 +1446,7 @@ function App() {
                       element: '.sidebar-selectors', 
                       popover: { 
                         title: '🎬 Chọn Phim & Tập', 
-                        description: 'Dễ dàng chuyển đổi giữa các bộ phim, mùa (season) và các tập phim khác nhau. Các tập đã xem sẽ có ký hiệu tích chọn (✓) để theo dõi tiến độ.',
+                        description: 'Dễ dàng chuyển đổi giữa các bộ phim, mùa phim và các tập phim khác nhau. Các tập đã xem sẽ có ký hiệu tích chọn ✓ để theo dõi tiến độ.',
                         side: "left", 
                         align: 'start' 
                       } 
@@ -1455,7 +1455,7 @@ function App() {
                       element: '.transcript-list', 
                       popover: { 
                         title: '📝 Kịch bản & Tương tác câu thoại', 
-                        description: 'Click vào bất kỳ câu thoại nào để tua video đến phân cảnh đó. Bạn có thể lưu câu thoại, yêu cầu Giáo viên AI giải nghĩa chi tiết ngữ cảnh/thành ngữ hoặc chỉnh sửa thời gian khớp phụ đề.',
+                        description: 'Click vào bất kỳ câu thoại nào để tua video đến phân cảnh đó. Bạn có thể lưu câu thoại, yêu cầu Giáo viên AI giải nghĩa chi tiết ngữ cảnh hoặc chỉnh sửa thời gian khớp phụ đề.',
                         side: "left", 
                         align: 'start' 
                       } 
@@ -1490,8 +1490,8 @@ function App() {
                     { 
                       element: '.tour-shadowing', 
                       popover: { 
-                        title: '🗣️ Tự dừng sau mỗi câu (Luyện Shadowing)', 
-                        description: 'Video tự động dừng khi kết thúc câu thoại. Bạn có thể chỉnh thời gian chờ (30%, 50% độ dài câu hoặc dừng hẳn) để có đủ thời gian bắt chước và nhại giọng nói theo nhân vật trước khi tự động chạy tiếp.',
+                        title: '🗣️ Tự dừng sau mỗi câu', 
+                        description: 'Video tự động dừng khi kết thúc câu thoại. Bạn có thể chỉnh thời gian chờ ở các mức độ khác nhau để có đủ thời gian bắt chước và nhại giọng nói theo nhân vật trước khi tự động chạy tiếp.',
                         side: "top", 
                         align: 'start' 
                       } 
@@ -1499,8 +1499,8 @@ function App() {
                     { 
                       element: '.tour-blanking', 
                       popover: { 
-                        title: '🧩 Đục lỗ (Cloze Test) luyện phản xạ', 
-                        description: 'Ẩn bớt các từ trong phụ đề tiếng Anh theo các cấp độ từ 30% đến 100%. Hãy tự đoán từ và click chuột (hoặc nhấn phím Tab) để mở từ đó ra, giúp rèn luyện khả năng ghi nhớ từ vựng.',
+                        title: '🧩 Đục lỗ luyện phản xạ', 
+                        description: 'Ẩn bớt các từ trong phụ đề tiếng Anh theo các cấp độ từ 30% đến 100%. Hãy tự đoán từ và click chuột hoặc nhấn phím Tab để mở từ đó ra, giúp rèn luyện khả năng ghi nhớ từ vựng.',
                         side: "top", 
                         align: 'start' 
                       } 
