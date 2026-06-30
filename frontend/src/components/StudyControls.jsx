@@ -37,16 +37,6 @@ export default function StudyControls({
           <span className="setting-label">Tự động sửa</span>
         </label>
 
-        {/* Progress watched checkbox */}
-        <label className="premium-compact-switch tour-watched-status" title="Đánh dấu tập phim này đã hoàn thành">
-          <input 
-            type="checkbox"
-            checked={currentEpisode ? watchedEpisodes.includes(currentEpisode.id) : false}
-            onChange={() => currentEpisode && toggleWatched(currentEpisode.id)}
-          />
-          <span className="compact-switch-slider"></span>
-          <span className="setting-label">Đã xem</span>
-        </label>
       </div>
 
       <div className="study-bar-center">

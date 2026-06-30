@@ -1465,7 +1465,7 @@ function App() {
                     { 
                       element: '.subtitles-overlay', 
                       popover: { 
-                        title: '🔍 Tra cứu từ vựng tức thì', 
+                        title: 'Tra cứu từ vựng tức thì', 
                         description: 'Chỉ cần click chuột trực tiếp vào bất kỳ từ nào trên phụ đề video. Hệ thống sẽ ngay lập tức dịch nghĩa, phát âm từ đó và cho phép bạn thêm nhanh vào Sổ từ vựng.',
                         side: "top", 
                         align: 'start' 
@@ -1474,8 +1474,8 @@ function App() {
                     { 
                       element: '.sidebar-selectors', 
                       popover: { 
-                        title: '🎬 Chọn Phim & Tập', 
-                        description: 'Dễ dàng chuyển đổi giữa các bộ phim, mùa phim và các tập phim khác nhau. Các tập đã xem sẽ có ký hiệu tích chọn ✓ để theo dõi tiến độ.',
+                        title: 'Chọn Phim và Tập', 
+                        description: 'Dễ dàng chuyển đổi giữa các bộ phim, mùa phim và các tập phim khác nhau để theo dõi tiến độ học tập.',
                         side: "left", 
                         align: 'start' 
                       } 
@@ -1483,7 +1483,7 @@ function App() {
                     { 
                       element: '.transcript-list', 
                       popover: { 
-                        title: '📝 Kịch bản & Tương tác câu thoại', 
+                        title: 'Kịch bản và Tương tác câu thoại', 
                         description: 'Click vào câu thoại bất kỳ để tua video đến phân cảnh đó. Bạn có thể lưu câu, yêu cầu Giáo viên AI giải thích nghĩa ngữ cảnh hoặc bấm nút biên tập để sửa phụ đề.',
                         side: "left", 
                         align: 'start' 
@@ -1503,7 +1503,7 @@ function App() {
                     { 
                       element: '.sub-sync-editor-panel', 
                       popover: { 
-                        title: '✏️ Bộ công cụ sửa & căn khớp phụ đề', 
+                        title: 'Bộ công cụ sửa và căn khớp phụ đề', 
                         description: 'Khi click vào biểu tượng chiếc bút chì bên cạnh câu thoại, bảng điều khiển này sẽ xuất hiện giúp bạn tinh chỉnh chính xác từng giây bắt đầu, kết thúc hoặc sửa đổi trực tiếp phần chữ phụ đề.',
                         side: "left", 
                         align: 'start' 
@@ -1535,12 +1535,12 @@ function App() {
                     { 
                       element: '.ai-explain-panel', 
                       popover: { 
-                        title: '🤖 Trợ lý Giáo viên AI giải nghĩa câu', 
+                        title: 'Trợ lý Giáo viên AI giải nghĩa câu', 
                         description: 'Hộp thoại giải nghĩa chi tiết ngữ cảnh bao gồm:\n' +
-                          '• Sắc thái (Tone): Nhận diện tông giọng giao tiếp (Thân mật, Né tránh...).\n' +
-                          '• Định nghĩa (Definition): Giải nghĩa cốt lõi của câu thoại trong ngữ cảnh phim.\n' +
-                          '• Focus: Giải thích chi tiết các từ lóng, cụm từ quan trọng dạng danh sách.\n' +
-                          '• Ví dụ (Example): Cung cấp câu ví dụ thực tế tương tự kèm dịch nghĩa.',
+                          '- Sắc thái (Tone): Nhận diện tông giọng giao tiếp như Thân mật, Né tránh...\n' +
+                          '- Định nghĩa (Definition): Giải nghĩa cốt lõi của câu thoại trong ngữ cảnh phim.\n' +
+                          '- Focus: Giải thích chi tiết các từ lóng, cụm từ quan trọng dạng danh sách.\n' +
+                          '- Ví dụ (Example): Cung cấp câu ví dụ thực tế tương tự kèm dịch nghĩa.',
                         side: "top", 
                         align: 'start' 
                       },
@@ -1552,7 +1552,7 @@ function App() {
                     { 
                       element: '.vocab-list', 
                       popover: { 
-                        title: '⭐ Sổ từ vựng cá nhân', 
+                        title: 'Sổ từ vựng cá nhân', 
                         description: 'Nơi lưu trữ các từ mới bạn đã click tra cứu trực tiếp trên phụ đề. Bạn có thể nghe phát âm chuẩn bản xứ, xem giải nghĩa chi tiết và quản lý từ đã lưu.',
                         side: "left", 
                         align: 'start' 
@@ -1566,7 +1566,7 @@ function App() {
                     { 
                       element: '.saved-sentences-list', 
                       popover: { 
-                        title: '🔖 Câu thoại đã lưu', 
+                        title: 'Câu thoại đã lưu', 
                         description: 'Nơi lưu lại các câu thoại tâm đắc hoặc các câu khó. Click vào nút Play ở mỗi câu để tự động tua video đến câu thoại đó và luyện nghe nói.',
                         side: "left", 
                         align: 'start' 
@@ -1580,8 +1580,8 @@ function App() {
                     { 
                       element: '.study-bar-left', 
                       popover: { 
-                        title: '⚙️ Quản lý tiến trình & Biên tập', 
-                        description: '• Tự động sửa: Tự động mở kịch bản và bảng biên tập phụ đề bám sát câu thoại đang phát để sửa đổi nhanh.\n• Đã xem: Đánh dấu đã học xong tập phim này.',
+                        title: 'Cài đặt biên tập phụ đề', 
+                        description: 'Tự động sửa: Tự động mở kịch bản và bảng biên tập phụ đề bám sát câu thoại đang phát để sửa đổi nhanh.',
                         side: "top", 
                         align: 'start' 
                       },
@@ -1594,8 +1594,8 @@ function App() {
                     { 
                       element: '.study-bar-center', 
                       popover: { 
-                        title: '🗣️ Luyện nghe nói phản xạ chuyên sâu', 
-                        description: '• Tự dừng sau mỗi câu: Video tự tạm dừng ở cuối câu để bạn luyện Shadowing nhại giọng.\n• Đục lỗ: Che chữ phụ đề theo tỷ lệ để rèn luyện phản xạ đoán từ.',
+                        title: 'Luyện nghe nói phản xạ chuyên sâu', 
+                        description: '- Tự dừng sau mỗi câu: Video tự tạm dừng ở cuối câu để bạn luyện Shadowing nhại giọng.\n- Đục lỗ: Che chữ phụ đề theo tỷ lệ để rèn luyện phản xạ đoán từ.',
                         side: "top", 
                         align: 'start' 
                       } 
@@ -1603,8 +1603,8 @@ function App() {
                     { 
                       element: '.btn-help-bottom-toggle', 
                       popover: { 
-                        title: '⌨️ Hệ thống Phím tắt Phản xạ', 
-                        description: '• Space: Tạm dừng / Phát video\n• Phím S: Phát lại câu thoại hiện tại\n• Phím A / D: Lùi về câu trước hoặc tiến tới câu sau nhanh chóng.\n• Phím Tab: Mở từ bị đục lỗ tiếp theo, hoặc tiếp tục phát video khi đã mở hết.',
+                        title: 'Hệ thống phím tắt phản xạ', 
+                        description: '- Space: Tạm dừng / Phát video\n- Phím S: Phát lại câu thoại hiện tại\n- Phím A / D: Lùi về câu trước hoặc tiến tới câu sau nhanh chóng.\n- Phím Tab: Mở từ bị đục lỗ tiếp theo, hoặc tiếp tục phát video khi đã mở hết.',
                         side: "top", 
                         align: 'end' 
                       } 
