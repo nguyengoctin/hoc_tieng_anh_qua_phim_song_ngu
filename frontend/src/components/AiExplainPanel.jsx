@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTranslation, onClose, parseMarkdown }) {
+export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTranslation, onClose, parseMarkdown, onApplyTranslation }) {
   if (!aiPanel) return null;
 
   return (
@@ -15,8 +15,26 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
       <div className="ai-explain-body" style={{ paddingTop: '10px' }}>
         <p className="ai-explain-sentence"><strong>Câu thoại:</strong> "{aiPanelSentence}"</p>
         {!aiPanel.loading && !aiPanel.error && aiPanel.data?.translation && (
-          <p className="ai-explain-translation" style={{ color: '#ffca4a', marginBottom: '20px' }}>
-            <strong>Dịch nghĩa:</strong> {aiPanel.data.translation}
+          <p className="ai-explain-translation" style={{ color: '#ffca4a', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px', flexWrap: 'wrap' }}>
+            <span><strong>Dịch nghĩa:</strong> {aiPanel.data.translation}</span>
+            <button 
+              className={`btn-sub-copy-compact ${aiPanel.applied ? 'copied' : ''}`}
+              style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255,202,74,0.3)', background: 'rgba(255,202,74,0.08)', color: '#ffca4a', fontWeight: '600', cursor: aiPanel.applied ? 'default' : 'pointer' }}
+              onClick={() => {
+                if (aiPanel.applied) return;
+                onApplyTranslation(
+                  aiPanel.segmentIndex,
+                  aiPanel.start,
+                  aiPanel.end,
+                  aiPanel.english,
+                  aiPanel.data.translation
+                );
+              }}
+              disabled={aiPanel.applied}
+              title="Cập nhật bản dịch này của AI làm phụ đề chính của phim"
+            >
+              {aiPanel.applied ? '✓ Đã áp dụng kịch bản' : '✍️ Áp dụng kịch bản'}
+            </button>
           </p>
         )}
         {aiPanel.loading ? (

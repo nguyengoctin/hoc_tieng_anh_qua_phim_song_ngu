@@ -775,7 +775,13 @@ function App() {
     const vietnamese = sub.vietnamese || '';
     setAiPanelSentence(sentence);
     setAiPanelTranslation(vietnamese);
-    setAiPanel({ loading: true });
+    setAiPanel({ 
+      loading: true, 
+      segmentIndex: sub.index,
+      start: sub.start,
+      end: sub.end,
+      english: sub.english
+    });
     try {
       const res = await fetch(`${API_BASE}/api/explain`, {
         method: 'POST',
@@ -783,15 +789,58 @@ function App() {
         body: JSON.stringify({ sentence, vietnamese, word: focusWord }),
       });
       if (res.status === 429) {
-        setAiPanel({ error: 'Đã hết quota Gemini hôm nay 😅 Thử lại ngày mai nhé!' });
+        setAiPanel(prev => ({ ...prev, loading: false, error: 'Đã hết quota Gemini hôm nay 😅 Thử lại ngày mai nhé!' }));
         return;
       }
       if (!res.ok) throw new Error('Lỗi server');
       const json = await res.json();
-      setAiPanel({ data: json.data });
+      setAiPanel(prev => ({ ...prev, loading: false, data: json.data }));
     } catch (err) {
-      setAiPanel({ error: 'Không kết nối được với AI. Kiểm tra backend đang chạy chưa?' });
+      setAiPanel(prev => ({ ...prev, loading: false, error: 'Không kết nối được với AI. Kiểm tra backend đang chạy chưa?' }));
     }
+  };
+
+  const handleApplyAiTranslation = (segmentIndex, start, end, english, newTranslation) => {
+    if (!currentEpisode) return;
+    fetch(`${API_BASE}/api/subtitles/update-segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        episode_id: currentEpisode.id,
+        segment_index: segmentIndex,
+        new_start: start,
+        new_end: end,
+        new_english: english,
+        new_vietnamese: newTranslation
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Cập nhật state subtitles ngay lập tức để đồng bộ UI
+          setSubtitles(prev => prev.map(sub => {
+            if (sub.index === segmentIndex) {
+              return { ...sub, vietnamese: newTranslation };
+            }
+            return sub;
+          }));
+          
+          // Cập nhật UI hiển thị dòng Dịch gốc trong video/panel phụ đề
+          setAiPanelTranslation(newTranslation);
+          
+          // Cập nhật trạng thái nút đã áp dụng
+          setAiPanel(prev => ({
+            ...prev,
+            applied: true
+          }));
+        } else {
+          alert('Không thể áp dụng dịch nghĩa AI: ' + data.detail);
+        }
+      })
+      .catch(err => {
+        console.error('Error applying AI translation:', err);
+        alert('Lỗi kết nối khi thay đổi phụ đề.');
+      });
   };
 
   // Helper đơn giản để parse in đậm (**) và in nghiêng (*) từ text trả về của AI
@@ -1302,6 +1351,7 @@ function App() {
             aiPanelTranslation={aiPanelTranslation}
             onClose={() => setAiPanel(null)}
             parseMarkdown={parseMarkdown}
+            onApplyTranslation={handleApplyAiTranslation}
           />
         </div>
 
