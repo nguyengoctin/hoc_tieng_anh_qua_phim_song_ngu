@@ -1458,7 +1458,10 @@ function App() {
                         description: 'Click vào bất kỳ câu thoại nào để tua video đến phân cảnh đó. Bạn có thể lưu câu thoại, yêu cầu Giáo viên AI giải nghĩa chi tiết ngữ cảnh hoặc chỉnh sửa thời gian khớp phụ đề.',
                         side: "left", 
                         align: 'start' 
-                      } 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('script');
+                      }
                     },
                     { 
                       element: '.sidebar-tabs', 
@@ -1467,7 +1470,10 @@ function App() {
                         description: 'Nơi lưu trữ và ôn tập. Bạn có thể nghe lại phát âm, ôn tập nghĩa của từ, hoặc nhấn nút Play ở từng câu đã lưu để luyện nghe đi nghe lại câu đó.',
                         side: "left", 
                         align: 'start' 
-                      } 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('vocab');
+                      }
                     },
                     { 
                       element: '.tour-auto-edit', 
@@ -1476,7 +1482,10 @@ function App() {
                         description: 'Bật tính năng này để kịch bản bên phải tự động cuộn và hiển thị panel chỉnh sửa phụ đề bám sát câu thoại đang phát. Giúp bạn phát hiện và sửa lỗi lệch phụ đề tức thời.',
                         side: "top", 
                         align: 'start' 
-                      } 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('script');
+                      }
                     },
                     { 
                       element: '.tour-watched-status', 
