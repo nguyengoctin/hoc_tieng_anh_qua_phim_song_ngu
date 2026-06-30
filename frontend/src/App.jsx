@@ -345,13 +345,20 @@ function App() {
       }
     });
 
-    // Optimize subtitle timestamps for shadowing experience (Always maximize to safe tight edge)
+    // Optimize subtitle timestamps for shadowing experience
     for (let i = 0; i < parsed.length; i++) {
       const current = parsed[i];
       if (i < parsed.length - 1) {
         const next = parsed[i + 1];
-        // Đặt điểm kết thúc của câu hiện tại bằng sát mép an toàn trước câu kế tiếp
-        current.end = next.start - 0.05;
+        const gap = next.start - current.end;
+
+        if (gap >= 0.5) {
+          // Rule 1: Nếu khoảng cách >= 0.5s, kéo dài thêm 0.4s để giữ trọn vẹn âm đuôi
+          current.end += 0.4;
+        } else {
+          // Rule 2 & 3: Nếu hẹp (< 0.5s) hoặc đè chồng, ép sát mép an toàn trước câu kế tiếp
+          current.end = next.start - 0.05;
+        }
       }
     }
 
