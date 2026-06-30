@@ -1422,8 +1422,33 @@ function App() {
           {/* Study Controls Bar Component */}
           <StudyControls 
             startTour={() => {
+              // 1. Lưu trữ dữ liệu gốc để khôi phục sau khi tắt hướng dẫn
+              const originalVocab = [...savedVocab];
+              const originalSentences = [...savedSentences];
+              const originalSubtitles = [...subtitles];
+              const originalSyncing = syncingSegment;
+              const originalAiPanel = aiPanel;
+
+              // 2. Tạo dữ liệu giả lập chất lượng cao cho việc demo
+              const mockSubs = [
+                { index: 1, start: 5.0, end: 7.2, english: "Not too bad, thanks!", vietnamese: "Cũng không tệ lắm, cảm ơn!" },
+                { index: 2, start: 8.5, end: 12.0, english: "How's everything going at work?", vietnamese: "Mọi thứ ở chỗ làm thế nào rồi?" }
+              ];
+              const mockVocab = [
+                { word: "hang out", ipa: "/hæŋ aʊt/", part_of_speech: "verb", translation: "dành thời gian đi chơi, tụ tập" },
+                { word: "candid", ipa: "/ˈkændɪd/", part_of_speech: "adjective", translation: "thật thà, thẳng thắn" }
+              ];
+              const mockSentences = [
+                { id: "mock_1", episodeTitle: "Friends S01E01", start: 5.0, end: 7.2, english: "Not too bad, thanks!", vietnamese: "Cũng không tệ lắm, cảm ơn!" }
+              ];
+
+              if (subtitles.length === 0) setSubtitles(mockSubs);
+              if (savedVocab.length === 0) setSavedVocab(mockVocab);
+              if (savedSentences.length === 0) setSavedSentences(mockSentences);
+
               setShowSidebar(true);
               setSidebarTab('script');
+
               setTimeout(() => {
                 const d = driver({
                   showProgress: true,
@@ -1432,6 +1457,14 @@ function App() {
                   nextBtnText: 'Tiếp tục',
                   prevBtnText: 'Quay lại',
                   doneBtnText: 'Hoàn tất',
+                  onDestroyed: () => {
+                    // Khôi phục lại trạng thái ban đầu của người dùng khi tắt Tour
+                    setSavedVocab(originalVocab);
+                    setSavedSentences(originalSentences);
+                    setSubtitles(originalSubtitles);
+                    setSyncingSegment(originalSyncing);
+                    setAiPanel(originalAiPanel);
+                  },
                   steps: [
                     { 
                       element: '.subtitles-overlay', 
@@ -1461,6 +1494,56 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('script');
+                        setSyncingSegment(null);
+                        setAiPanel(null);
+                      }
+                    },
+                    { 
+                      element: '.sub-sync-editor-panel', 
+                      popover: { 
+                        title: '✏️ Bộ công cụ sửa & căn khớp phụ đề', 
+                        description: 'Khi click vào biểu tượng chiếc bút chì bên cạnh câu thoại, bảng điều khiển này sẽ xuất hiện giúp bạn tinh chỉnh chính xác từng giây bắt đầu, kết thúc hoặc sửa đổi trực tiếp phần chữ phụ đề.',
+                        side: "left", 
+                        align: 'start' 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('script');
+                        setAiPanel(null);
+                        const activeSubs = subtitles.length > 0 ? subtitles : mockSubs;
+                        setSyncingSegment({
+                          index: activeSubs[0].index,
+                          start: activeSubs[0].start,
+                          end: activeSubs[0].end,
+                          english: activeSubs[0].english,
+                          vietnamese: activeSubs[0].vietnamese
+                        });
+                      }
+                    },
+                    { 
+                      element: '.ai-explain-panel', 
+                      popover: { 
+                        title: '🤖 Trợ lý Giáo viên AI giải nghĩa câu', 
+                        description: 'Khi bấm vào nút Sparkles bên cạnh câu thoại, Giáo viên AI sẽ xuất hiện giúp bạn giải nghĩa chi tiết ngữ cảnh, ngữ pháp khó và giải thích các cụm thành ngữ sử dụng trong câu.',
+                        side: "top", 
+                        align: 'start' 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('script');
+                        setSyncingSegment(null);
+                        const activeSubs = subtitles.length > 0 ? subtitles : mockSubs;
+                        setAiPanel({
+                          loading: false,
+                          error: null,
+                          applied: false,
+                          segmentIndex: activeSubs[0].index,
+                          start: activeSubs[0].start,
+                          end: activeSubs[0].end,
+                          english: activeSubs[0].english,
+                          data: {
+                            translation: activeSubs[0].vietnamese,
+                            explanation: "### Giáo viên AI giải thích:\n\n- **Not too bad, thanks!**: Một cách trả lời lịch sự và tự nhiên thay thế cho 'I am fine, thank you'. Mang ý nghĩa mọi việc đang diễn ra ở mức độ chấp nhận được, khá tốt.\n- *Focus*: not too bad - ở mức khá tốt, ổn."
+                          }
+                        });
                       }
                     },
                     { 
@@ -1473,6 +1556,8 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('vocab');
+                        setSyncingSegment(null);
+                        setAiPanel(null);
                       }
                     },
                     { 
@@ -1485,6 +1570,8 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('sentences');
+                        setSyncingSegment(null);
+                        setAiPanel(null);
                       }
                     },
                     { 
@@ -1497,6 +1584,8 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('script');
+                        setSyncingSegment(null);
+                        setAiPanel(null);
                       }
                     },
                     { 
