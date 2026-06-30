@@ -1488,21 +1488,7 @@ function App() {
                       element: '.transcript-list', 
                       popover: { 
                         title: '📝 Kịch bản & Tương tác câu thoại', 
-                        description: 'Click vào câu thoại bất kỳ để tua video đến phân cảnh đó. Bạn có thể lưu câu, yêu cầu Giáo viên AI giải thích nghĩa ngữ cảnh hoặc bấm nút bút chì để sửa khớp phụ đề.',
-                        side: "left", 
-                        align: 'start' 
-                      },
-                      onHighlightStarted: () => {
-                        setSidebarTab('script');
-                        setSyncingSegment(null);
-                        setAiPanel(null);
-                      }
-                    },
-                    { 
-                      element: '.sub-sync-editor-panel', 
-                      popover: { 
-                        title: '✏️ Bộ công cụ sửa & căn khớp phụ đề', 
-                        description: 'Khi click vào biểu tượng chiếc bút chì bên cạnh câu thoại, bảng điều khiển này sẽ xuất hiện giúp bạn tinh chỉnh chính xác từng giây bắt đầu, kết thúc hoặc sửa đổi trực tiếp phần chữ phụ đề.',
+                        description: 'Click vào câu thoại bất kỳ để tua video đến phân cảnh đó. Bạn có thể lưu câu, yêu cầu Giáo viên AI giải thích nghĩa ngữ cảnh hoặc bấm nút biên tập để sửa phụ đề.',
                         side: "left", 
                         align: 'start' 
                       },
@@ -1520,16 +1506,15 @@ function App() {
                       }
                     },
                     { 
-                      element: '.ai-explain-panel', 
+                      element: '.sub-sync-editor-panel', 
                       popover: { 
-                        title: '🤖 Trợ lý Giáo viên AI giải nghĩa câu', 
-                        description: 'Khi bấm vào nút Sparkles bên cạnh câu thoại, Giáo viên AI sẽ xuất hiện giúp bạn giải nghĩa chi tiết ngữ cảnh, ngữ pháp khó và giải thích các cụm thành ngữ sử dụng trong câu.',
-                        side: "top", 
+                        title: '✏️ Bộ công cụ sửa & căn khớp phụ đề', 
+                        description: 'Khi click vào biểu tượng chiếc bút chì bên cạnh câu thoại, bảng điều khiển này sẽ xuất hiện giúp bạn tinh chỉnh chính xác từng giây bắt đầu, kết thúc hoặc sửa đổi trực tiếp phần chữ phụ đề.',
+                        side: "left", 
                         align: 'start' 
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('script');
-                        setSyncingSegment(null);
                         const activeSubs = subtitles.length > 0 ? subtitles : mockSubs;
                         setAiPanel({
                           loading: false,
@@ -1541,9 +1526,22 @@ function App() {
                           english: activeSubs[0].english,
                           data: {
                             translation: activeSubs[0].vietnamese,
-                            explanation: "### Giáo viên AI giải thích:\n\n- **Not too bad, thanks!**: Một cách trả lời lịch sự và tự nhiên thay thế cho 'I am fine, thank you'. Mang ý nghĩa mọi việc đang diễn ra ở mức độ chấp nhận được, khá tốt.\n- *Focus*: not too bad - ở mức khá tốt, ổn."
+                            explanation: `### Giáo viên AI giải thích:\n\n- **${activeSubs[0].english}**:\n- Dịch nghĩa: ${activeSubs[0].vietnamese}\n- Đây là câu thoại thực tế từ phim. Bạn có thể nghe phát âm, học từ vựng hoặc nhấn nút *Áp dụng kịch bản* để cập nhật bản dịch này làm phụ đề chính.`
                           }
                         });
+                      }
+                    },
+                    { 
+                      element: '.ai-explain-panel', 
+                      popover: { 
+                        title: '🤖 Trợ lý Giáo viên AI giải nghĩa câu', 
+                        description: 'Khi bấm vào nút Sparkles bên cạnh câu thoại, Giáo viên AI sẽ xuất hiện giúp bạn giải nghĩa chi tiết ngữ cảnh, ngữ pháp khó và giải thích các cụm thành ngữ sử dụng trong câu.',
+                        side: "top", 
+                        align: 'start' 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('script');
+                        setSyncingSegment(null);
                       }
                     },
                     { 
