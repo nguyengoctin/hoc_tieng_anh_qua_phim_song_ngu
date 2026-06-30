@@ -147,7 +147,11 @@ def get_ai_cached_explanation(sentence: str):
     conn.close()
     if row:
         try:
-            return json.loads(row["response_json"])
+            data = json.loads(row["response_json"])
+            # Đảm bảo dữ liệu cache phải đúng cấu trúc Google Dictionary mới (có chứa key definition)
+            if isinstance(data, dict) and "definition" in data:
+                return data
+            return None
         except Exception:
             return None
     return None
