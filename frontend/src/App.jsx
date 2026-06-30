@@ -892,9 +892,9 @@ function App() {
     if (typeof text !== 'string') {
       try {
         if (typeof text === 'object') {
-          // Chuyển object {key: value} thành dạng chuỗi "key: value"
+          // Chuyển object {key: value} thành dạng danh sách dòng có dấu đầu dòng "• key: value"
           text = Object.entries(text)
-            .map(([k, v]) => `**${k}**: ${v}`)
+            .map(([k, v]) => `• **${k}**: ${v}`)
             .join('\n');
         } else {
           text = String(text);
@@ -1491,15 +1491,13 @@ function App() {
                       onHighlightStarted: () => {
                         setSidebarTab('script');
                         setAiPanel(null);
-                        if (subtitles.length > 0) {
-                          setSyncingSegment({
-                            index: subtitles[0].index,
-                            start: subtitles[0].start,
-                            end: subtitles[0].end,
-                            english: subtitles[0].english,
-                            vietnamese: subtitles[0].vietnamese
-                          });
-                        }
+                        setSyncingSegment({
+                          index: 1,
+                          start: 3.21,
+                          end: 7.21,
+                          english: "There's nothing to tell. It's just some guy I work with.",
+                          vietnamese: "Không có gì đáng nói cả. Chỉ là một anh chàng làm chung thôi."
+                        });
                       }
                     },
                     { 
@@ -1512,28 +1510,37 @@ function App() {
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('script');
-                        if (subtitles.length > 0) {
-                          setAiPanel({
-                            loading: false,
-                            error: null,
-                            applied: false,
-                            segmentIndex: subtitles[0].index,
-                            start: subtitles[0].start,
-                            end: subtitles[0].end,
-                            english: subtitles[0].english,
-                            data: {
-                              translation: subtitles[0].vietnamese,
-                              explanation: `### Giáo viên AI giải thích:\n\n- **${subtitles[0].english}**:\n- Dịch nghĩa: ${subtitles[0].vietnamese}\n- Đây là câu thoại thực tế từ phim được tải từ cơ sở dữ liệu SQLite.`
-                            }
-                          });
-                        }
+                        setAiPanel({
+                          loading: false,
+                          error: null,
+                          applied: false,
+                          segmentIndex: 1,
+                          start: 3.21,
+                          end: 7.21,
+                          english: "There's nothing to tell. It's just some guy I work with.",
+                          data: {
+                            translation: "Không có gì đáng nói cả. Chỉ là một anh chàng làm chung thôi.",
+                            tone: "Né tránh, Suồng sã",
+                            definition: "Dùng để gạt đi mối quan tâm của người khác về một mối quan hệ mới, giảm nhẹ tầm quan trọng của đối phương.",
+                            key_vocabulary: {
+                              "nothing to tell": "Không có gì đáng kể để kể lại hoặc chia sẻ thêm.",
+                              "some guy": "Một gã/anh chàng nào đó bình thường, không có mối quan hệ thân thiết hay đặc biệt gì."
+                            },
+                            example: "Don't ask me about him, he's just some guy I work with.",
+                            example_translation: "Đừng hỏi tôi về anh ta, chỉ là một gã làm cùng công ty thôi mà."
+                          }
+                        });
                       }
                     },
                     { 
                       element: '.ai-explain-panel', 
                       popover: { 
                         title: '🤖 Trợ lý Giáo viên AI giải nghĩa câu', 
-                        description: 'Khi bấm vào nút Sparkles bên cạnh câu thoại, Giáo viên AI sẽ xuất hiện giúp bạn giải nghĩa chi tiết ngữ cảnh, ngữ pháp khó và giải thích các cụm thành ngữ sử dụng trong câu.',
+                        description: 'Hộp thoại giải nghĩa chi tiết ngữ cảnh bao gồm:\n' +
+                          '• Sắc thái (Tone): Nhận diện tông giọng giao tiếp (Thân mật, Né tránh...).\n' +
+                          '• Định nghĩa (Definition): Giải nghĩa cốt lõi của câu thoại trong ngữ cảnh phim.\n' +
+                          '• Focus: Giải thích chi tiết các từ lóng, cụm từ quan trọng dạng danh sách.\n' +
+                          '• Ví dụ (Example): Cung cấp câu ví dụ thực tế tương tự kèm dịch nghĩa.',
                         side: "top", 
                         align: 'start' 
                       },
