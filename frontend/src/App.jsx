@@ -45,14 +45,13 @@ function App() {
   const [revealedIndices, setRevealedIndices] = useState([]); // indices of blanked words that are revealed
   const [shadowingDelay, setShadowingDelay] = useState(-99); // -99 (off), -2, -1, 0, 1, 3, 5, 7 seconds added to script duration
   const [resumeData, setResumeData] = useState(null); // { time, formatted }
-  const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
-    const saved = localStorage.getItem('watched_episodes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [watchedEpisodes, setWatchedEpisodes] = useState([]);
   const [savedSentences, setSavedSentences] = useState(() => {
     const saved = localStorage.getItem('saved_sentences');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const lastSavedTimeRef = useRef(0);
 
   const [followActiveSubtitleSync, setFollowActiveSubtitleSync] = useState(false); // Chế độ tự động mở / bám theo câu thoại đang chạy
   const [syncingSegment, setSyncingSegment] = useState(null); // Trạng thái câu thoại đang được chỉnh đồng bộ/sửa chữ
@@ -201,13 +200,22 @@ function App() {
 
   const toggleWatched = (epId) => {
     if (!epId) return;
-    setWatchedEpisodes(prev => {
-      const updated = prev.includes(epId)
-        ? prev.filter(id => id !== epId)
-        : [...prev, epId];
-      localStorage.setItem('watched_episodes', JSON.stringify(updated));
-      return updated;
-    });
+    const isNowWatched = !watchedEpisodes.includes(epId);
+    
+    // Cập nhật local state nhanh
+    setWatchedEpisodes(prev => isNowWatched ? [...prev, epId] : prev.filter(id => id !== epId));
+    
+    // Gửi đồng bộ lên SQLite Backend
+    fetch(`${API_BASE}/api/progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        episode_id: epId,
+        last_position: 0,
+        duration: duration || 0,
+        completed: isNowWatched ? 1 : 0
+      })
+    }).catch(err => console.error("Error toggling watched progress:", err));
   };
 
   const clearAllVocab = async () => {
@@ -303,7 +311,7 @@ function App() {
     }
   }, [currentEpisode, selectedShow, selectedSeason]);
 
-  // Load saved vocabulary on mount from SQLite database
+  // Load saved vocabulary and watched progress lists on mount from SQLite database
   useEffect(() => {
     fetch(`${API_BASE}/api/vocabulary`)
       .then(res => res.json())
@@ -313,6 +321,15 @@ function App() {
         }
       })
       .catch(err => console.error("Error loading vocabulary:", err));
+
+    fetch(`${API_BASE}/api/progress/watched`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.status === 'ok') {
+          setWatchedEpisodes(json.data);
+        }
+      })
+      .catch(err => console.error("Error loading watched progress:", err));
   }, []);
 
   // Reset blanking states only when we transition to a different, non-null subtitle segment
@@ -692,12 +709,31 @@ function App() {
     const time = video.currentTime;
     setCurrentTime(time);
 
-    // Save resume position
-    if (currentEpisode && time > 2 && video.duration && time < video.duration - 5) {
-      const savedPositions = localStorage.getItem('resume_positions');
-      const positions = savedPositions ? JSON.parse(savedPositions) : {};
-      positions[currentEpisode.id] = time;
-      localStorage.setItem('resume_positions', JSON.stringify(positions));
+    // Save watch progress to SQLite backend using debounced rule (every 5 seconds)
+    if (currentEpisode && video.duration && Math.abs(time - lastSavedTimeRef.current) >= 5) {
+      lastSavedTimeRef.current = time;
+      
+      const totalDuration = video.duration;
+      const isCompleted = (time > totalDuration - 30) || (time / totalDuration > 0.95);
+      const isNearStart = time < 10;
+      
+      const savePosition = (isCompleted || isNearStart) ? 0 : time;
+      
+      // Update local completed state visually
+      if (isCompleted && !watchedEpisodes.includes(currentEpisode.id)) {
+        setWatchedEpisodes(prev => [...prev, currentEpisode.id]);
+      }
+
+      fetch(`${API_BASE}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          episode_id: currentEpisode.id,
+          last_position: parseFloat(savePosition.toFixed(3)),
+          duration: parseFloat(totalDuration.toFixed(3)),
+          completed: isCompleted ? 1 : 0
+        })
+      }).catch(err => console.error("Error auto-saving watch progress:", err));
     }
 
     const current = subtitles.find(s => time >= s.start && time <= s.end);
@@ -876,6 +912,27 @@ function App() {
     if (isPlaying) {
       video.pause();
       setIsPlaying(false);
+      
+      // Lưu tiến độ ngay lập tức khi tạm dừng
+      if (currentEpisode && video.duration) {
+        const time = video.currentTime;
+        const totalDuration = video.duration;
+        const isCompleted = (time > totalDuration - 30) || (time / totalDuration > 0.95);
+        const isNearStart = time < 10;
+        const savePosition = (isCompleted || isNearStart) ? 0 : time;
+        lastSavedTimeRef.current = time;
+
+        fetch(`${API_BASE}/api/progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            episode_id: currentEpisode.id,
+            last_position: parseFloat(savePosition.toFixed(3)),
+            duration: parseFloat(totalDuration.toFixed(3)),
+            completed: isCompleted ? 1 : 0
+          })
+        }).catch(err => console.error("Error saving progress on pause:", err));
+      }
     } else {
       setPausedSub(null); // clear lock on manual play
       video.play().then(() => setIsPlaying(true));
@@ -1178,16 +1235,21 @@ function App() {
                       videoRef.current.play().then(() => setIsPlaying(true));
                       return;
                     }
-                    const savedPositions = localStorage.getItem('resume_positions');
-                    if (savedPositions) {
-                      const positions = JSON.parse(savedPositions);
-                      const savedTime = positions[currentEpisode.id];
-                      if (savedTime && savedTime > 5) {
-                        videoRef.current.currentTime = savedTime;
-                        setResumeData({ time: savedTime, formatted: formatTime(savedTime) });
-                        setTimeout(() => setResumeData(null), 5000);
-                      }
-                    }
+                    // Fetch watch progress from SQLite backend
+                    fetch(`${API_BASE}/api/progress/${encodeURIComponent(currentEpisode.id)}`)
+                      .then(res => res.json())
+                      .then(json => {
+                        if (json.status === 'ok' && json.data) {
+                          const savedTime = json.data.last_position;
+                          if (savedTime && savedTime > 10 && !json.data.completed) {
+                            videoRef.current.currentTime = savedTime;
+                            lastSavedTimeRef.current = savedTime;
+                            setResumeData({ time: savedTime, formatted: formatTime(savedTime) });
+                            setTimeout(() => setResumeData(null), 6000);
+                          }
+                        }
+                      })
+                      .catch(err => console.error("Error loading resume time:", err));
                   }
                 }}
                 onEnded={() => {

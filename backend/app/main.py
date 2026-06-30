@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import VIDEOS_DIR, SUBTITLES_DIR
 from app.database import db
-from app.routers import episodes, vocabulary, subtitles, explain
+from app.routers import episodes, vocabulary, subtitles, explain, progress
 
 # Khởi tạo SQLite database
 db.init_db()
@@ -32,6 +32,7 @@ app.include_router(episodes.router)
 app.include_router(vocabulary.router)
 app.include_router(subtitles.router)
 app.include_router(explain.router)
+app.include_router(progress.router)
 
 if __name__ == "__main__":
     import uvicorn

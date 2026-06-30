@@ -33,9 +33,56 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # 3. Bảng tiến trình xem phim (Persisted Watch Progress)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS watch_progress (
+            episode_id TEXT PRIMARY KEY,
+            last_position REAL,
+            duration REAL,
+            completed INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     
     conn.commit()
     conn.close()
+
+# --- Watch Progress Helpers ---
+
+def save_progress(episode_id: str, last_position: float, duration: float, completed: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT OR REPLACE INTO watch_progress (episode_id, last_position, duration, completed, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (episode_id, last_position, duration, completed))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error saving watch progress: {e}")
+        return False
+    finally:
+        conn.close()
+
+def get_progress(episode_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT last_position, duration, completed FROM watch_progress WHERE episode_id = ?", (episode_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def get_completed_episodes():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT episode_id FROM watch_progress WHERE completed = 1")
+    rows = cursor.fetchall()
+    conn.close()
+    return [row["episode_id"] for row in rows]
 
 # --- Vocabulary Helpers ---
 
