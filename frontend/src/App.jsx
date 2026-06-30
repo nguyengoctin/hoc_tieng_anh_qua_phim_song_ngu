@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
+import AiExplainPanel from './components/AiExplainPanel';
+import StudyControls from './components/StudyControls';
+import DictionaryPopover from './components/DictionaryPopover';
+import Sidebar from './components/Sidebar';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -1190,58 +1194,13 @@ function App() {
             )}
 
             {/* Dictionary Definition Popover */}
-            {clickedWord && (
-              <div 
-                className="dictionary-popover"
-                style={{ top: `${popoverPos.top}px`, left: `${popoverPos.left}px` }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button 
-                  className="btn-close-popover"
-                  onClick={(e) => handleClosePopover(e, true)}
-                  title="Đóng bảng tra cứu"
-                >
-                  ✕
-                </button>
-                <div className="popover-header">
-                  <h4 className="popover-word">{clickedWord}</h4>
-                  {wordDefinition && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {wordDefinition.ipa && <span className="popover-ipa">{wordDefinition.ipa}</span>}
-                      {wordDefinition.audio_url && (
-                        <button 
-                          className="btn-audio-pronounce"
-                          onClick={() => {
-                            const audio = new Audio(wordDefinition.audio_url);
-                            audio.play().catch(err => console.error("Audio play error:", err));
-                          }}
-                          title="Nghe phát âm"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            padding: '2px',
-                            lineHeight: 1
-                          }}
-                        >
-                          🔊
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {wordDefinition ? (
-                  <>
-                    {wordDefinition.part_of_speech && <span className="popover-pos-badge">{wordDefinition.part_of_speech}</span>}
-                    <p className="popover-def">{wordDefinition.translation}</p>
-                    <button className="btn-save-word" onClick={saveWord}>⭐ Lưu Từ</button>
-                  </>
-                ) : (
-                  <p className="popover-def">Đang dịch...</p>
-                )}
-              </div>
-            )}
+            <DictionaryPopover 
+              clickedWord={clickedWord}
+              popoverPos={popoverPos}
+              wordDefinition={wordDefinition}
+              handleClosePopover={handleClosePopover}
+              saveWord={saveWord}
+            />
 
             {/* Big center play icon when paused */}
             {!isPlaying && (
@@ -1307,9 +1266,6 @@ function App() {
                   🇻🇳 VIE
                 </button>
 
-
-
-
                 <button 
                   className={`btn-ctrl ${showSidebar ? 'active' : ''}`}
                   onClick={() => setShowSidebar(!showSidebar)}
@@ -1321,509 +1277,71 @@ function App() {
             </div>
           </div>
 
-          {/* Study Controls Bar (Compact horizontal bar) */}
-          <div className="study-controls-bar" onClick={(e) => e.stopPropagation()}>
-            <div className="study-bar-group">
-              {/* Auto-sync Edit Toggle */}
-              <div className="watched-toggle-container">
-                <label className="watched-toggle-label" title="Tự động mở panel chỉnh sửa phụ đề bám theo câu thoại đang phát">
-                  <input 
-                    type="checkbox"
-                    checked={followActiveSubtitleSync}
-                    onChange={(e) => {
-                      setFollowActiveSubtitleSync(e.target.checked);
-                      if (e.target.checked) {
-                        setShowSidebar(true);
-                        setSidebarTab('script');
-                      } else {
-                        setSyncingSegment(null);
-                      }
-                    }}
-                    className="watched-checkbox"
-                  />
-                  <span className="setting-label">Auto-sync Edit</span>
-                </label>
-              </div>
+          {/* Study Controls Bar Component */}
+          <StudyControls 
+            followActiveSubtitleSync={followActiveSubtitleSync}
+            setFollowActiveSubtitleSync={setFollowActiveSubtitleSync}
+            setShowSidebar={setShowSidebar}
+            setSidebarTab={setSidebarTab}
+            setSyncingSegment={setSyncingSegment}
+            currentEpisode={currentEpisode}
+            watchedEpisodes={watchedEpisodes}
+            toggleWatched={toggleWatched}
+            shadowingDelay={shadowingDelay}
+            setShadowingDelay={setShadowingDelay}
+            blankLevel={blankLevel}
+            setBlankLevel={setBlankLevel}
+            autoPauseOnBlank={autoPauseOnBlank}
+            setAutoPauseOnBlank={setAutoPauseOnBlank}
+          />
 
-              {/* Progress watched checkbox */}
-              <div className="watched-toggle-container">
-                <label className="watched-toggle-label">
-                  <input 
-                    type="checkbox"
-                    checked={currentEpisode ? watchedEpisodes.includes(currentEpisode.id) : false}
-                    onChange={() => currentEpisode && toggleWatched(currentEpisode.id)}
-                    className="watched-checkbox"
-                  />
-                  <span className="setting-label">Đã xem</span>
-                </label>
-              </div>
-
-              {/* Shadowing Delay Selector */}
-              <div className="shadowing-delay-selector">
-                <span className="setting-label">Dừng tự nói:</span>
-                <select 
-                  value={shadowingDelay} 
-                  onChange={(e) => setShadowingDelay(parseFloat(e.target.value))}
-                  className="select-resume-delay"
-                >
-                  <option value="-99">Tắt</option>
-                  <option value="999">Dừng hẳn</option>
-                  <option value="0.3">30% độ dài câu</option>
-                  <option value="0.5">50% độ dài câu</option>
-                  <option value="0.7">70% độ dài câu</option>
-                  <option value="0.8">80% độ dài câu</option>
-                  <option value="0.9">90% độ dài câu</option>
-                  <option value="1.0">100% độ dài câu</option>
-                  <option value="1.3">130% độ dài câu</option>
-                  <option value="1.5">150% độ dài câu</option>
-                  <option value="1.8">180% độ dài câu</option>
-                  <option value="2.0">200% độ dài câu</option>
-                  <option value="2.5">250% độ dài câu</option>
-                </select>
-              </div>
-
-
-              {/* Blanking Level */}
-              <div className="blank-level-selectors">
-                <span className="setting-label">Đục lỗ:</span>
-                <button className={`btn-study-mode ${blankLevel === 0 ? 'active' : ''}`} onClick={() => { setBlankLevel(0); }}>Tắt</button>
-                <button className={`btn-study-mode ${blankLevel === 0.3 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.3); }}>30%</button>
-                <button className={`btn-study-mode ${blankLevel === 0.5 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.5); }}>50%</button>
-                <button className={`btn-study-mode ${blankLevel === 0.7 ? 'active' : ''}`} onClick={() => { setBlankLevel(0.7); }}>70%</button>
-                <button className={`btn-study-mode ${blankLevel === 1.0 ? 'active' : ''}`} onClick={() => { setBlankLevel(1.0); }}>100%</button>
-                
-                {blankLevel > 0 && (
-                  <label className="watched-toggle-label" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '12px', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox"
-                      checked={autoPauseOnBlank}
-                      onChange={() => setAutoPauseOnBlank(!autoPauseOnBlank)}
-                      className="watched-checkbox"
-                    />
-                    <span className="setting-label" style={{ marginLeft: '4px' }}>Tự dừng</span>
-                  </label>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* AI Explain Output Panel */}
-          {aiPanel && (
-            <div className="ai-explain-panel" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-              <button 
-                className="btn-close-ai" 
-                style={{ position: 'absolute', top: '12px', right: '15px', fontSize: '18px', zIndex: 10 }}
-                onClick={() => setAiPanel(null)}
-              >
-                ✕
-              </button>
-              <div className="ai-explain-body" style={{ paddingTop: '10px' }}>
-                <p className="ai-explain-sentence"><strong>Câu thoại:</strong> "{aiPanelSentence}"</p>
-                {aiPanelTranslation && (
-                  <p className="ai-explain-translation" style={{ marginBottom: aiPanel.data?.translation ? '4px' : '20px' }}>
-                    <strong>Phụ đề gốc:</strong> {aiPanelTranslation}
-                  </p>
-                )}
-                {!aiPanel.loading && !aiPanel.error && aiPanel.data?.translation && (
-                  <p className="ai-explain-translation" style={{ color: '#8ab4f8', marginBottom: '20px' }}>
-                    <strong>AI dịch nghĩa:</strong> {aiPanel.data.translation}
-                  </p>
-                )}
-                {aiPanel.loading ? (
-                  <div className="ai-loading">
-                    <span className="spinner"></span> Đang kết nối AI giáo viên...
-                  </div>
-                ) : aiPanel.error ? (
-                  <div className="ai-error">⚠️ {aiPanel.error}</div>
-                ) : (
-                  <div className="ai-content">
-                    {/* Google-Style Dictionary Card Layout */}
-                    <div className="google-dict-card">
-                      <div className="google-dict-meta">
-                        {aiPanel.data.tone && (
-                          <span className="google-tone-badge">{aiPanel.data.tone}</span>
-                        )}
-                        <span className="google-dict-type">câu thoại</span>
-                      </div>
-
-                      {aiPanel.data.definition && (
-                        <div className="google-dict-definition">
-                          <span className="google-number">1.</span>
-                          <span className="google-def-text">{parseMarkdown(aiPanel.data.definition)}</span>
-                        </div>
-                      )}
-
-                      {aiPanel.data.key_vocabulary && (
-                        <div className="google-dict-vocab">
-                          <strong>💡 Focus:</strong> <span>{parseMarkdown(aiPanel.data.key_vocabulary)}</span>
-                        </div>
-                      )}
-
-                      {aiPanel.data.example && (
-                        <div className="google-dict-example-box">
-                          <p className="google-example-eng">"{aiPanel.data.example}"</p>
-                          {aiPanel.data.example_translation && (
-                            <p className="google-example-vi">→ {aiPanel.data.example_translation}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* AI Explain Panel Component */}
+          <AiExplainPanel 
+            aiPanel={aiPanel}
+            aiPanelSentence={aiPanelSentence}
+            aiPanelTranslation={aiPanelTranslation}
+            onClose={() => setAiPanel(null)}
+            parseMarkdown={parseMarkdown}
+          />
         </div>
 
-        {/* Collapsible Sidebar */}
-        <aside className={`sidebar ${showSidebar ? 'open' : ''}`}>
-          {/* Sidebar Selectors */}
-          <div className="sidebar-selectors">
-            <select 
-              onChange={(e) => handleShowChange(e.target.value)}
-              value={selectedShow}
-              title="Chọn phim"
-            >
-              {Object.keys(showsData).map(showId => (
-                <option key={showId} value={showId}>{showsData[showId].title}</option>
-              ))}
-            </select>
-
-            <select 
-              onChange={(e) => handleSeasonChange(selectedShow, e.target.value)}
-              value={selectedSeason}
-              title="Chọn season"
-              disabled={!selectedShow}
-            >
-              {selectedShow && Object.keys(showsData[selectedShow]?.seasons || {})
-                .sort((a, b) => {
-                  const numA = parseInt(a.replace(/\D/g, '')) || 0;
-                  const numB = parseInt(b.replace(/\D/g, '')) || 0;
-                  return numA - numB;
-                })
-                .map(seasonId => (
-                  <option key={seasonId} value={seasonId}>
-                    {showsData[selectedShow].seasons[seasonId].title}
-                  </option>
-                ))}
-            </select>
-
-            <select 
-              onChange={(e) => handleEpisodeChange(e.target.value)}
-              value={selectedEpisodeId}
-              title="Chọn tập"
-              disabled={!selectedSeason}
-            >
-              {(selectedShow && selectedSeason && showsData[selectedShow]?.seasons[selectedSeason]?.episodes || [])
-                .sort((a, b) => {
-                  const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
-                  const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
-                  return numA - numB;
-                })
-                .map(ep => {
-                  const isWatched = watchedEpisodes.includes(ep.id);
-                  return (
-                    <option key={ep.id} value={ep.id}>
-                      {isWatched ? '✓ ' : ''}{ep.title}
-                    </option>
-                  );
-                })}
-            </select>
-          </div>
-
-          <div className="sidebar-tabs">
-            <button 
-              className={`tab-btn ${sidebarTab === 'script' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('script')}
-            >
-              📖 Kịch bản
-            </button>
-            <button 
-              className={`tab-btn ${sidebarTab === 'vocab' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('vocab')}
-            >
-              ⭐ Từ vựng ({savedVocab.length})
-            </button>
-            <button 
-              className={`tab-btn ${sidebarTab === 'sentences' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('sentences')}
-            >
-              🔖 Đã lưu ({savedSentences.length})
-            </button>
-          </div>
-
-          <div className="sidebar-content">
-            {sidebarTab === 'script' ? (
-              <div className="transcript-list">
-                {subtitles.map((sub, index) => {
-                  const isSaved = currentEpisode && savedSentences.some(item => item.id === `${currentEpisode.id}_${sub.start}`);
-                  return (
-                    <div 
-                      key={index} 
-                      className={`transcript-item ${activeSidebarSub === sub ? 'active' : ''}`}
-                      onClick={() => {
-                        if (videoRef.current) {
-                          setPausedSub(null); // Clear lock phụ đề cũ
-                          setRevealedIndices([]); // Reset trạng thái đục lỗ của câu thoại cũ
-                          videoRef.current.currentTime = sub.start;
-                          videoRef.current.play().then(() => setIsPlaying(true));
-                        }
-                      }}
-                    >
-                      <div className="transcript-header-bar">
-                        <span className="transcript-time">{formatTime(sub.start)}</span>
-                        <div className="transcript-actions" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            className="btn-sub-copy-compact"
-                            onClick={() => setSyncingSegment({
-                              index: sub.index,
-                              start: sub.start,
-                              end: sub.end,
-                              english: sub.english,
-                              vietnamese: sub.vietnamese
-                            })}
-                            title="Chỉnh đồng bộ và sửa chữ câu thoại này"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_raw` ? 'copied' : ''}`}
-                            onClick={() => handleCopySubtitle(sub, index, 'raw')}
-                            title="Sao chép câu thoại gốc"
-                          >
-                            {copyFeedback === `${sub.start}_raw` ? '✓' : 'Sub'}
-                          </button>
-                          <button 
-                            className={`btn-sub-copy-compact ${copyFeedback === `${sub.start}_prompt` ? 'copied' : ''}`}
-                            onClick={() => handleCopySubtitle(sub, index, 'prompt')}
-                            title="Sao chép Prompt Gemini"
-                          >
-                            {copyFeedback === `${sub.start}_prompt` ? '✓' : 'Gem'}
-                          </button>
-                          <button
-                            className="btn-sub-copy-compact btn-sidebar-ai"
-                            onClick={() => handleAiExplain(sub)}
-                            title="Giải thích nhanh với AI"
-                          >
-                            ✨ AI
-                          </button>
-                          <button 
-                            className={`btn-save-sentence-star ${isSaved ? 'saved' : ''}`}
-                            onClick={() => {
-                              if (isSaved) {
-                                removeSentence(`${currentEpisode.id}_${sub.start}`);
-                              } else {
-                                saveSentence(sub);
-                              }
-                            }}
-                            title={isSaved ? "Xóa lưu câu thoại" : "Lưu câu thoại"}
-                          >
-                            {isSaved ? '★' : '☆'}
-                          </button>
-                        </div>
-                      </div>
-                      <p className="transcript-en">{sub.english}</p>
-                      <p className="transcript-vi">{sub.vietnamese}</p>
-
-                      {/* Subtitle Sync Editor Panel */}
-                      {((syncingSegment && syncingSegment.index === sub.index) || followActiveSubtitleSync) && (
-                        <div className="sub-sync-editor-panel" onClick={(e) => e.stopPropagation()}>
-                          <div className="sync-editor-row">
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.5), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.5) }));
-                              }
-                            }}>-0.5s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.3), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.3) }));
-                              }
-                            }}>-0.3s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.max(0, sub.start - 0.1), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.max(0, prev.start - 0.1) }));
-                              }
-                            }}>-0.1s</button>
-                            <span className="sync-time-val">⏱ {followActiveSubtitleSync ? sub.start.toFixed(3) : syncingSegment?.start.toFixed(3)}s</span>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.1), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.1) }));
-                              }
-                            }}>+0.1s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.3), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.3) }));
-                              }
-                            }}>+0.3s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, Math.min(sub.end - 0.05, sub.start + 0.5), sub.end, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, start: Math.min(prev.end - 0.05, prev.start + 0.5) }));
-                              }
-                            }}>+0.5s</button>
-                          </div>
-                          <div className="sync-editor-row">
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.5), sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.5) }));
-                              }
-                            }}>-0.5s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.3), sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.3) }));
-                              }
-                            }}>-0.3s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, Math.max(sub.start + 0.05, sub.end - 0.1), sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: Math.max(prev.start + 0.05, prev.end - 0.1) }));
-                              }
-                            }}>-0.1s</button>
-                            <span className="sync-time-val">🛑 {followActiveSubtitleSync ? sub.end.toFixed(3) : syncingSegment?.end.toFixed(3)}s</span>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.1, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.1 }));
-                              }
-                            }}>+0.1s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.3, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.3 }));
-                              }
-                            }}>+0.3s</button>
-                            <button className="btn-sync-adjust" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                handleSaveTimeSync(sub.index, sub.start, sub.end + 0.5, sub.english, sub.vietnamese);
-                              } else {
-                                setSyncingSegment(prev => ({ ...prev, end: prev.end + 0.5 }));
-                              }
-                            }}>+0.5s</button>
-                          </div>
-                          
-                          {/* Text Inputs for English & Vietnamese */}
-                          <div className="sync-editor-text-row">
-                            <input 
-                              type="text" 
-                              className="sync-text-input" 
-                              placeholder="Sửa nội dung phụ đề tiếng Anh..."
-                              value={followActiveSubtitleSync ? sub.english : (syncingSegment?.english || '')} 
-                              onChange={(e) => {
-                                if (followActiveSubtitleSync) {
-                                  handleSaveTimeSync(sub.index, sub.start, sub.end, e.target.value, sub.vietnamese);
-                                } else {
-                                  setSyncingSegment(prev => ({ ...prev, english: e.target.value }));
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="sync-editor-text-row">
-                            <input 
-                              type="text" 
-                              className="sync-text-input" 
-                              placeholder="Sửa dịch phụ đề tiếng Việt..."
-                              value={followActiveSubtitleSync ? sub.vietnamese : (syncingSegment?.vietnamese || '')} 
-                              onChange={(e) => {
-                                if (followActiveSubtitleSync) {
-                                  handleSaveTimeSync(sub.index, sub.start, sub.end, sub.english, e.target.value);
-                                } else {
-                                  setSyncingSegment(prev => ({ ...prev, vietnamese: e.target.value }));
-                                }
-                              }}
-                            />
-                          </div>
-
-                          <div className="sync-editor-actions">
-                            <button className="btn-sync-cancel" onClick={() => {
-                              if (followActiveSubtitleSync) {
-                                setFollowActiveSubtitleSync(false);
-                              } else {
-                                setSyncingSegment(null);
-                              }
-                            }}>{followActiveSubtitleSync ? 'Tắt Auto' : 'Hủy'}</button>
-                            {!followActiveSubtitleSync && (
-                              <button className="btn-sync-save" onClick={() => handleSaveTimeSync(sub.index, syncingSegment.start, syncingSegment.end, syncingSegment.english, syncingSegment.vietnamese)}>Lưu vĩnh viễn</button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : sidebarTab === 'vocab' ? (
-              <div className="vocab-list">
-                {savedVocab.length > 0 && (
-                  <button className="btn-clear-all-vocab" onClick={clearAllVocab}>
-                    🗑 Xóa tất cả từ đã lưu
-                  </button>
-                )}
-                {savedVocab.map((item, idx) => (
-                  <div key={idx} className="vocab-item">
-                    <div className="vocab-word-header">
-                      <span className="vocab-word">{item.word}</span>
-                      <button className="btn-remove-vocab" onClick={() => removeWord(item.word)}>🗑</button>
-                    </div>
-                    <span className="vocab-ipa">{item.ipa}</span>
-                    <p className="vocab-translation">{item.translation}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="saved-sentences-list">
-                {savedSentences.length === 0 ? (
-                  <p className="empty-message">Chưa có câu thoại nào được lưu.</p>
-                ) : (
-                  savedSentences.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      className="saved-sentence-item"
-                      onClick={() => playSavedSentence(item)}
-                      title="Nhấn để nhảy đến cảnh phim của câu này"
-                    >
-                      <div className="saved-sentence-header">
-                        <span className="saved-sentence-episode">{item.episodeTitle}</span>
-                        <div className="saved-sentence-actions">
-                          <span className="saved-sentence-time">⏱ {formatTime(item.start)}</span>
-                          <button 
-                            className="btn-remove-saved-sentence" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeSentence(item.id);
-                            }}
-                            title="Xóa câu thoại"
-                          >
-                            🗑
-                          </button>
-                        </div>
-                      </div>
-                      <p className="saved-sentence-en">{item.english}</p>
-                      <p className="saved-sentence-vi">{item.vietnamese}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </aside>
+        {/* Modular Sidebar Component */}
+        <Sidebar 
+          showSidebar={showSidebar}
+          sidebarTab={sidebarTab}
+          setSidebarTab={setSidebarTab}
+          selectedShow={selectedShow}
+          selectedSeason={selectedSeason}
+          selectedEpisodeId={selectedEpisodeId}
+          showsData={showsData}
+          watchedEpisodes={watchedEpisodes}
+          handleShowChange={handleShowChange}
+          handleSeasonChange={handleSeasonChange}
+          handleEpisodeChange={handleEpisodeChange}
+          subtitles={subtitles}
+          savedSentences={savedSentences}
+          currentEpisode={currentEpisode}
+          activeSidebarSub={activeSidebarSub}
+          videoRef={videoRef}
+          setPausedSub={setPausedSub}
+          setRevealedIndices={setRevealedIndices}
+          setIsPlaying={setIsPlaying}
+          formatTime={formatTime}
+          setSyncingSegment={setSyncingSegment}
+          copyFeedback={copyFeedback}
+          handleCopySubtitle={handleCopySubtitle}
+          handleAiExplain={handleAiExplain}
+          removeSentence={removeSentence}
+          saveSentence={saveSentence}
+          syncingSegment={syncingSegment}
+          followActiveSubtitleSync={followActiveSubtitleSync}
+          handleSaveTimeSync={handleSaveTimeSync}
+          setFollowActiveSubtitleSync={setFollowActiveSubtitleSync}
+          savedVocab={savedVocab}
+          clearAllVocab={clearAllVocab}
+          removeWord={removeWord}
+          playSavedSentence={playSavedSentence}
+        />
       </div>
     </div>
   );
