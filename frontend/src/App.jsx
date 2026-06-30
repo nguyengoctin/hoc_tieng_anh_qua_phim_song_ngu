@@ -1455,7 +1455,7 @@ function App() {
                       element: '.transcript-list', 
                       popover: { 
                         title: '📝 Kịch bản & Tương tác câu thoại', 
-                        description: 'Click vào bất kỳ câu thoại nào để tua video đến phân cảnh đó. Bạn có thể lưu câu thoại, yêu cầu Giáo viên AI giải nghĩa chi tiết ngữ cảnh hoặc chỉnh sửa thời gian khớp phụ đề.',
+                        description: 'Click vào câu thoại bất kỳ để tua video đến phân cảnh đó. Bạn có thể lưu câu, yêu cầu Giáo viên AI giải thích nghĩa ngữ cảnh hoặc bấm nút bút chì để sửa khớp phụ đề.',
                         side: "left", 
                         align: 'start' 
                       },
@@ -1464,15 +1464,27 @@ function App() {
                       }
                     },
                     { 
-                      element: '.sidebar-tabs', 
+                      element: '.vocab-list', 
                       popover: { 
-                        title: '⭐ Sổ Từ vựng & Câu đã lưu', 
-                        description: 'Nơi lưu trữ và ôn tập. Bạn có thể nghe lại phát âm, ôn tập nghĩa của từ, hoặc nhấn nút Play ở từng câu đã lưu để luyện nghe đi nghe lại câu đó.',
+                        title: '⭐ Sổ từ vựng cá nhân', 
+                        description: 'Nơi lưu trữ các từ mới bạn đã click tra cứu trực tiếp trên phụ đề. Bạn có thể nghe phát âm chuẩn bản xứ, xem giải nghĩa chi tiết và quản lý từ đã lưu.',
                         side: "left", 
                         align: 'start' 
                       },
                       onHighlightStarted: () => {
                         setSidebarTab('vocab');
+                      }
+                    },
+                    { 
+                      element: '.saved-sentences-list', 
+                      popover: { 
+                        title: '🔖 Câu thoại đã lưu', 
+                        description: 'Nơi lưu lại các câu thoại tâm đắc hoặc các câu khó. Click vào nút Play ở mỗi câu để tự động tua video đến câu thoại đó và luyện nghe nói.',
+                        side: "left", 
+                        align: 'start' 
+                      },
+                      onHighlightStarted: () => {
+                        setSidebarTab('sentences');
                       }
                     },
                     { 
