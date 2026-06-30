@@ -379,7 +379,7 @@ function App() {
     setActiveSub(null);
     setActiveSidebarSub(null);
 
-    fetch(currentEpisode.subtitle_url)
+    fetch(`${API_BASE}${currentEpisode.subtitle_url}`)
       .then(res => res.text())
       .then(text => {
         parseVTT(text);
@@ -1162,7 +1162,7 @@ function App() {
             {currentEpisode && (
               <video
                 ref={videoRef}
-                src={currentEpisode.video_url}
+                src={`${API_BASE}${currentEpisode.video_url}`}
                 onTimeUpdate={handleTimeUpdate}
                 onDurationChange={() => setDuration(videoRef.current?.duration || 0)}
                 onClick={togglePlay}
