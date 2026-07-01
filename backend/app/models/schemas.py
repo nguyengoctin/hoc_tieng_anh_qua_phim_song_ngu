@@ -5,6 +5,9 @@ class ExplainRequest(BaseModel):
     sentence: str          # Câu thoại tiếng Anh
     vietnamese: Optional[str] = ""  # Bản dịch tiếng Việt làm context
     word: Optional[str] = ""         # Từ/cụm từ đang focus
+    prev_sentence: Optional[str] = "" # Câu thoại trước đó
+    next_sentence: Optional[str] = "" # Câu thoại sau đó
+    bypass_cache: Optional[bool] = False  # Bỏ qua cache để gen lại
 
 class SubtitleUpdateSchema(BaseModel):
     episode_id: str
@@ -20,3 +23,6 @@ class VocabRequest(BaseModel):
     translation: str
     part_of_speech: Optional[str] = None
     audio_url: Optional[str] = None
+
+class ReviewRequest(BaseModel):
+    quality: int # 1 (Again), 2 (Hard), 3 (Easy)

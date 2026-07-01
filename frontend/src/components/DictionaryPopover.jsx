@@ -23,9 +23,11 @@ export default function DictionaryPopover({
       >
         <X size={14} />
       </button>
-      <div className="popover-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingRight: '20px' }}>
+
+      {/* Row 1: Word + Audio */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', paddingRight: '20px' }}>
         <h4 className="popover-word" style={{ margin: 0 }}>{clickedWord}</h4>
-        {wordDefinition && wordDefinition.audio_url && (
+        {wordDefinition?.audio_url && (
           <button 
             className="btn-audio-pronounce"
             onClick={() => {
@@ -33,36 +35,37 @@ export default function DictionaryPopover({
               audio.play().catch(err => console.error("Audio play error:", err));
             }}
             title="Nghe phát âm"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px',
-              color: '#ffca4a'
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: '4px', color: 'rgba(255,255,255,0.3)', transition: 'color 0.2s ease' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#ffca4a'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
           >
-            <Volume2 size={16} />
+            <Volume2 size={15} />
           </button>
         )}
-        {wordDefinition && wordDefinition.ipa && (
-          <span className="popover-ipa" style={{ color: '#8a8d98', fontSize: '12px' }}>{wordDefinition.ipa}</span>
-        )}
       </div>
+
+      {/* Row 2: POS badge + IPA */}
+      {wordDefinition && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          {wordDefinition.part_of_speech && (
+            <span className="popover-pos-badge">{wordDefinition.part_of_speech}</span>
+          )}
+          {wordDefinition.ipa && (
+            <span className="popover-ipa">{wordDefinition.ipa}</span>
+          )}
+        </div>
+      )}
+
       {wordDefinition ? (
         <>
-          {wordDefinition.part_of_speech && <span className="popover-pos-badge">{wordDefinition.part_of_speech}</span>}
-          <p className="popover-def" style={{ margin: '8px 0 12px 0' }}>{wordDefinition.translation}</p>
+          {/* Row 3: Translation */}
+          <p className="popover-def" style={{ margin: '0 0 14px 0' }}>{wordDefinition.translation}</p>
+
+          {/* Row 4: Save button */}
           <button 
             className="btn-save-word" 
             onClick={saveWord}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
             <Star size={12} fill="#ffca4a" color="#ffca4a" /> Lưu từ
           </button>

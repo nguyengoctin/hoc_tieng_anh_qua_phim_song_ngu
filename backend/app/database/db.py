@@ -36,6 +36,22 @@ def init_db():
         cursor.execute("ALTER TABLE vocabulary ADD COLUMN audio_url TEXT")
     except sqlite3.OperationalError:
         pass # Cột đã tồn tại
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN next_review TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN interval_days INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN repetitions INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE vocabulary ADD COLUMN efactor REAL DEFAULT 2.5")
+    except sqlite3.OperationalError:
+        pass
     
     # 2. Bảng cache kết quả AI giải thích
     cursor.execute("""
@@ -103,7 +119,15 @@ def add_vocab(word: str, ipa: str, translation: str, part_of_speech: str = None,
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT OR REPLACE INTO vocabulary (word, ipa, translation, part_of_speech, audio_url) VALUES (?, ?, ?, ?, ?)",
+            """
+            INSERT INTO vocabulary (word, ipa, translation, part_of_speech, audio_url) 
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(word) DO UPDATE SET
+                ipa = excluded.ipa,
+                translation = excluded.translation,
+                part_of_speech = COALESCE(excluded.part_of_speech, vocabulary.part_of_speech),
+                audio_url = COALESCE(excluded.audio_url, vocabulary.audio_url)
+            """,
             (word, ipa, translation, part_of_speech, audio_url)
         )
         conn.commit()
@@ -117,10 +141,26 @@ def add_vocab(word: str, ipa: str, translation: str, part_of_speech: str = None,
 def get_all_vocab():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT word, ipa, translation, part_of_speech, audio_url, created_at FROM vocabulary ORDER BY created_at DESC")
+    cursor.execute("SELECT word, ipa, translation, part_of_speech, audio_url, next_review, interval_days, repetitions, efactor, created_at FROM vocabulary ORDER BY created_at DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+def update_vocab_srs(word: str, next_review: str, interval_days: int, repetitions: int, efactor: float):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE vocabulary SET next_review = ?, interval_days = ?, repetitions = ?, efactor = ? WHERE word = ?",
+            (next_review, interval_days, repetitions, efactor, word)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating vocab SRS: {e}")
+        return False
+    finally:
+        conn.close()
 
 def delete_vocab(word: str):
     conn = get_db_connection()

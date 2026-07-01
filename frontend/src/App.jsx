@@ -63,6 +63,7 @@ function App() {
   });
 
   const [followActiveSubtitleSync, setFollowActiveSubtitleSync] = useState(false); // Chế độ tự động mở / bám theo câu thoại đang chạy
+  const [showStudyControls, setShowStudyControls] = useState(() => localStorage.getItem('show_study_controls') !== 'false');
   const [syncingSegment, setSyncingSegment] = useState(null); // Trạng thái câu thoại đang được chỉnh đồng bộ/sửa chữ
   const [aiPanel, setAiPanel] = useState(null); // null | { loading: true } | { data: {...} } | { error: '...' }
   const [aiPanelSentence, setAiPanelSentence] = useState(''); // câu đang được giải thích
@@ -503,10 +504,18 @@ function App() {
     }
   };
 
-  const handleAiExplain = async (sub, focusWord = '') => {
+  const handleAiExplain = async (sub, focusWord = '', bypassCache = false) => {
     if (!sub) return;
     const sentence = sub.english;
     const vietnamese = sub.vietnamese || '';
+    
+    // Tìm câu thoại trước và sau làm ngữ cảnh
+    const currentIndex = subtitles.findIndex(s => s.index === sub.index);
+    const prevSub = currentIndex > 0 ? subtitles[currentIndex - 1] : null;
+    const nextSub = currentIndex < subtitles.length - 1 ? subtitles[currentIndex + 1] : null;
+    const prevSentence = prevSub ? prevSub.english : '';
+    const nextSentence = nextSub ? nextSub.english : '';
+
     setAiPanelSentence(sentence);
     setAiPanelTranslation(vietnamese);
     setAiPanel({ 
@@ -520,7 +529,14 @@ function App() {
       const res = await fetch(`${API_BASE}/api/explain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, vietnamese, word: focusWord }),
+        body: JSON.stringify({ 
+          sentence, 
+          vietnamese, 
+          word: focusWord, 
+          prev_sentence: prevSentence,
+          next_sentence: nextSentence,
+          bypass_cache: bypassCache 
+        }),
       });
       if (res.status === 429) {
         setAiPanel(prev => ({ ...prev, loading: false, error: 'Đã hết quota Gemini hôm nay 😅 Thử lại ngày mai nhé!' }));
@@ -699,6 +715,30 @@ function App() {
     handleClosePopover();
   };
 
+  const saveFocusWord = (word, translation) => {
+    if (!word || !translation) return;
+    const isSaved = savedVocab.some(item => item.word.toLowerCase() === word.toLowerCase());
+    if (isSaved) {
+      removeWord(word);
+      return;
+    }
+    const wordDef = {
+      word: word,
+      translation: translation,
+      ipa: '',
+      part_of_speech: 'phrase',
+      audio_url: ''
+    };
+    const updated = [...savedVocab, wordDef];
+    setSavedVocab(updated);
+    
+    fetch(`${API_BASE}/api/vocabulary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(wordDef)
+    }).catch(err => console.error("Error saving focus vocab to SQLite:", err));
+  };
+
   const removeWord = (word) => {
     const updated = savedVocab.filter(item => item.word !== word);
     setSavedVocab(updated);
@@ -840,6 +880,10 @@ function App() {
             handleSubtitleMouseUp={handleSubtitleMouseUp}
             handleMouseMove={handleMouseMove}
             setWatchedEpisodes={setWatchedEpisodes}
+            watchedEpisodes={watchedEpisodes}
+            toggleWatched={toggleWatched}
+            showStudyControls={showStudyControls}
+            setShowStudyControls={setShowStudyControls}
             
             // SubtitleOverlay props
             blankLevel={blankLevel}
@@ -857,7 +901,8 @@ function App() {
             translateAndShowPopover={translateAndShowPopover}
           />
 
-          <StudyControls 
+          {showStudyControls && (
+            <StudyControls 
             startTour={() => {
               const originalSyncing = syncingSegment;
               const originalAiPanel = aiPanel;
@@ -1042,6 +1087,7 @@ function App() {
             blankLevel={blankLevel}
             setBlankLevel={setBlankLevel}
           />
+          )}
 
           <AiExplainPanel 
             aiPanel={aiPanel}
@@ -1050,6 +1096,14 @@ function App() {
             onClose={() => setAiPanel(null)}
             parseMarkdown={parseMarkdown}
             onApplyTranslation={handleApplyAiTranslation}
+            onRegenerate={() => {
+              const currentSub = subtitles.find(s => s.index === aiPanel.segmentIndex);
+              if (currentSub) {
+                handleAiExplain(currentSub, '', true);
+              }
+            }}
+            savedVocab={savedVocab}
+            onSaveFocusWord={saveFocusWord}
           />
         </div>
 
@@ -1085,6 +1139,7 @@ function App() {
           handleSaveTimeSync={handleSaveTimeSync}
           setFollowActiveSubtitleSync={setFollowActiveSubtitleSync}
           savedVocab={savedVocab}
+          setSavedVocab={setSavedVocab}
           clearAllVocab={clearAllVocab}
           removeWord={removeWord}
           playSavedSentence={playSavedSentence}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, RotateCcw, RotateCw, Subtitles, Menu } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, Subtitles, Menu, Sliders } from 'lucide-react';
 import SubtitleOverlay from './SubtitleOverlay';
 import DictionaryPopover from './DictionaryPopover';
 import { formatTime } from '../utils/helpers';
@@ -49,6 +49,10 @@ export default function VideoPlayer({
   handleSubtitleMouseUp,
   handleMouseMove,
   setWatchedEpisodes,
+  watchedEpisodes,
+  toggleWatched,
+  showStudyControls,
+  setShowStudyControls,
   
   // SubtitleOverlay props
   blankLevel,
@@ -126,12 +130,8 @@ export default function VideoPlayer({
             }
           }}
           onEnded={() => {
-            if (currentEpisode) {
-              setWatchedEpisodes(prev => {
-                const updated = prev.includes(currentEpisode.id) ? prev : [...prev, currentEpisode.id];
-                localStorage.setItem('watched_episodes', JSON.stringify(updated));
-                return updated;
-              });
+            if (currentEpisode && watchedEpisodes && !watchedEpisodes.includes(currentEpisode.id)) {
+              toggleWatched(currentEpisode.id);
             }
           }}
         />
@@ -282,6 +282,20 @@ export default function VideoPlayer({
               </div>
             )}
           </div>
+
+          <button 
+            className={`btn-ctrl btn-sidebar-toggle ${showStudyControls ? 'active' : ''}`}
+            onClick={() => {
+              const nextVal = !showStudyControls;
+              setShowStudyControls(nextVal);
+              localStorage.setItem('show_study_controls', String(nextVal));
+            }}
+            tabIndex="-1"
+            title="Bật/Tắt thanh công cụ học tập (Đục lỗ, shadowing, đã xem...)"
+          >
+            <Sliders size={16} style={{ marginRight: '6px' }} />
+            Công cụ học
+          </button>
 
           <button 
             className={`btn-ctrl btn-sidebar-toggle ${showSidebar ? 'active' : ''}`}

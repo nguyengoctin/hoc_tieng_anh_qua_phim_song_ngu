@@ -19,6 +19,23 @@ export default function StudyControls({
   return (
     <div className="study-controls-bar" onClick={(e) => e.stopPropagation()}>
       <div className="study-bar-left">
+        {/* Watched Episode Toggle */}
+        {currentEpisode && (
+          <div className="watched-toggle-container">
+            <label className="watched-toggle-label" title="Đánh dấu tập phim này là đã xem">
+              <input 
+                type="checkbox"
+                className="watched-checkbox"
+                checked={watchedEpisodes.includes(currentEpisode.id)}
+                onChange={() => toggleWatched(currentEpisode.id)}
+              />
+              <span className="setting-label" style={{ color: watchedEpisodes.includes(currentEpisode.id) ? '#2ed573' : 'inherit' }}>
+                Đã xem
+              </span>
+            </label>
+          </div>
+        )}
+
         {/* Auto-sync Edit Toggle */}
         <label className="premium-compact-switch tour-auto-edit" title="Tự động mở panel chỉnh sửa phụ đề bám theo câu thoại đang phát">
           <input 

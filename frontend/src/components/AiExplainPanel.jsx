@@ -1,7 +1,17 @@
 import React from 'react';
-import { X, Check, Edit3 } from 'lucide-react';
+import { X, Check, Edit3, RotateCw, Plus } from 'lucide-react';
 
-export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTranslation, onClose, parseMarkdown, onApplyTranslation }) {
+export default function AiExplainPanel({ 
+  aiPanel, 
+  aiPanelSentence, 
+  aiPanelTranslation, 
+  onClose, 
+  parseMarkdown, 
+  onApplyTranslation, 
+  onRegenerate,
+  savedVocab = [],
+  onSaveFocusWord
+}) {
   if (!aiPanel) return null;
 
   return (
@@ -48,6 +58,33 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
               >
                 {aiPanel.applied ? <Check size={12} /> : <Edit3 size={12} />}
                 {aiPanel.applied ? 'Đã áp dụng kịch bản' : 'Áp dụng kịch bản'}
+              </button>
+            )}
+
+            {!aiPanel.loading && !aiPanel.error && aiPanel.data && (
+              <button 
+                className="btn-sub-copy-compact"
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '4px 10px', 
+                  borderRadius: '4px', 
+                  border: '1px solid rgba(255, 255, 255, 0.15)', 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  color: '#fff', 
+                  fontWeight: '600', 
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  width: 'auto',
+                  height: 'auto',
+                  whiteSpace: 'nowrap'
+                }}
+                onClick={onRegenerate}
+                title="Yêu cầu AI giải thích lại từ đầu (bỏ qua cache)"
+              >
+                <RotateCw size={12} />
+                Tạo lại
               </button>
             )}
 
@@ -111,11 +148,37 @@ export default function AiExplainPanel({ aiPanel, aiPanelSentence, aiPanelTransl
                     if (typeof vocabData === 'object' && vocabData !== null) {
                       return (
                         <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px', listStyleType: 'disc' }}>
-                          {Object.entries(vocabData).map(([k, v], idx) => (
-                            <li key={idx} style={{ marginBottom: '8px', lineHeight: '1.4', fontSize: '13px' }}>
-                              <strong style={{ color: '#ffca4a' }}>{k}</strong>: {parseMarkdown(v)}
-                            </li>
-                          ))}
+                          {Object.entries(vocabData).map(([k, v], idx) => {
+                            const isSaved = savedVocab.some(item => item.word.toLowerCase() === k.toLowerCase());
+                            return (
+                              <li key={idx} style={{ marginBottom: '8px', lineHeight: '1.4', fontSize: '13px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                  <span style={{ flex: 1 }}>
+                                    <strong style={{ color: '#ffca4a' }}>{k}</strong>: {parseMarkdown(v)}
+                                  </span>
+                                  {onSaveFocusWord && (
+                                    <button
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: isSaved ? '#2ed573' : 'rgba(255, 255, 255, 0.3)',
+                                        cursor: 'pointer',
+                                        padding: '0 4px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'color 0.15s ease'
+                                      }}
+                                      onClick={() => onSaveFocusWord(k, v)}
+                                      title={isSaved ? "Xóa khỏi sổ từ vựng" : "Lưu vào sổ từ vựng"}
+                                    >
+                                      {isSaved ? <Check size={13} style={{ strokeWidth: 3 }} /> : <Plus size={13} style={{ strokeWidth: 3 }} />}
+                                    </button>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
                         </ul>
                       );
                     }

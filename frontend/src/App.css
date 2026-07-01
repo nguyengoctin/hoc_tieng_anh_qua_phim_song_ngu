@@ -79,28 +79,36 @@ select:hover {
 .sidebar-selectors {
   display: flex;
   gap: 8px;
-  padding: 12px;
-  background: #1e212a; /* Phù hợp với tông #23262E */
+  padding: 14px 16px;
+  background: #111218; /* obsidian black background */
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-selectors select {
   flex: 1;
-  background: #161722;
-  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e2e8f0;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px 6px;
-  border-radius: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
   font-size: 12px;
+  font-weight: 500;
   outline: none;
   cursor: pointer;
   max-width: 33.33%;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-selectors select:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 202, 74, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-selectors select:focus {
+  border-color: #ffca4a;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Player Column */
@@ -181,7 +189,7 @@ video {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 26px;
   font-weight: 600;
-  color: #ffffff;
+  color: #ffca4a; /* English subtitle in gold */
   margin-bottom: 6px;
   line-height: 1.45;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -191,7 +199,7 @@ video {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 21px;
   font-weight: 500;
-  color: #ffca4a; /* Netflix-like soft gold/yellow */
+  color: #bdc1c6; /* Vietnamese subtitle in muted gray-white */
   line-height: 1.35;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
@@ -200,15 +208,15 @@ video {
 .word-span {
   display: inline-block;
   cursor: pointer;
-  padding: 0 1.5px;
+  padding: 0 2px;
   border-radius: 4px;
-  transition: all 0.15s cubic-bezier(0.2, 1, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.2, 1, 0.2, 1);
 }
 
 .word-span:hover {
-  background-color: #e50914;
-  color: #fff;
-  transform: scale(1.08);
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #c084fc !important;
+  transform: scale(1.05);
 }
 
 /* Custom Video Controls */
@@ -598,23 +606,52 @@ video {
 
 .transcript-en {
   font-size: 14px;
-  font-weight: 500;
-  color: #fff;
+  font-weight: 600;
+  color: #ffca4a; /* English sentence in gold */
   margin: 6px 0;
+  letter-spacing: -0.1px;
 }
 
 .transcript-vi {
   font-size: 13px;
-  color: #ffca4a;
+  color: #bdc1c6; /* Vietnamese translation in muted gray */
+  line-height: 1.4;
 }
 
 /* Saved Vocabulary List */
 .vocab-item {
-  background: rgba(255, 255, 255, 0.025);
-  padding: 14px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px;
+  border-radius: 12px;
   margin-bottom: 12px;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.35s ease, padding 0.35s ease, margin 0.35s ease;
+  position: relative;
+  overflow: hidden;
+  max-height: 500px;
+}
+
+.vocab-item:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 202, 74, 0.25);
+  box-shadow: 0 6px 20px rgba(255, 202, 74, 0.05);
+  transform: translateY(-2px);
+}
+
+.vocab-item.fade-out {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
+  border-left-width: 0 !important;
+  pointer-events: none;
 }
 
 .vocab-word-header {
@@ -625,9 +662,10 @@ video {
 }
 
 .vocab-word {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: #ffca4a; /* English word in gold/yellow */
+  letter-spacing: -0.1px;
 }
 
 .vocab-ipa {
@@ -636,37 +674,42 @@ video {
 }
 
 .vocab-translation {
-  font-size: 14px;
-  color: #ffca4a;
+  font-size: 13px;
+  color: #bdc1c6; /* translation in smaller, muted grey-white */
+  line-height: 1.5;
 }
 
 .btn-remove-vocab {
   background: none;
   border: none;
-  color: #ff4d4f;
+  color: rgba(255, 255, 255, 0.25);
   cursor: pointer;
   padding: 4px;
-  font-size: 14px;
-  transition: transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .btn-remove-vocab:hover {
-  transform: scale(1.2);
+  color: #ff4d4f;
+  transform: scale(1.15);
 }
 
 /* Dictionary Popover Definition - floating style */
 .dictionary-popover {
   position: absolute;
-  background: rgba(26, 28, 36, 0.85); /* Nền hơi trong suốt cùng tông xám xanh */
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 8, 0.78); /* Semi-transparent glassmorphism, matching subtitle tone */
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 18px;
   border-radius: 12px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
   width: 250px;
   z-index: 100;
   color: white;
   pointer-events: auto;
-  backdrop-filter: blur(15px); /* Làm mờ hiệu ứng kính */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   transform: translate(-50%, -100%) translateY(-18px); /* Nhấc popover cao lên một chút từ -10px thành -18px */
   transform-origin: bottom center;
   animation: popoverFadeIn 0.2s cubic-bezier(0.2, 1, 0.2, 1);
@@ -680,7 +723,7 @@ video {
   transform: translateX(-50%);
   border-width: 6px 6px 0;
   border-style: solid;
-  border-color: rgba(26, 28, 36, 0.85) transparent; /* Thay đổi màu mũi tên cho tiệp với nền popover */
+  border-color: rgba(8, 8, 8, 0.78) transparent;
   display: block;
   width: 0;
 }
@@ -707,7 +750,7 @@ video {
   font-size: 18px;
   font-weight: 800;
   margin: 0;
-  color: #fff;
+  color: #ffca4a; /* English word in gold, matching subtitles */
 }
 
 .popover-ipa {
@@ -717,25 +760,26 @@ video {
 
 .popover-def {
   font-size: 14px;
-  color: #ffca4a;
+  color: #bdc1c6; /* Vietnamese translation in muted gray, matching subtitles */
   margin-bottom: 15px;
   line-height: 1.4;
 }
 
 .btn-save-word {
   width: 100%;
-  background: rgba(255, 202, 74, 0.15); /* Màu vàng ấm dịu mắt và nhẹ nhàng */
+  background: rgba(255, 202, 74, 0.08); /* Soft gold outline button */
   color: #ffca4a;
-  border: 1px solid rgba(255, 202, 74, 0.3);
+  border: 1px solid rgba(255, 202, 74, 0.25);
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-save-word:hover {
-  background: rgba(255, 202, 74, 0.3);
+  background: rgba(255, 202, 74, 0.18);
+  border-color: rgba(255, 202, 74, 0.45);
   transform: translateY(-1px);
 }
 
@@ -1293,19 +1337,27 @@ video {
 .transcript-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.transcript-item:hover .transcript-actions,
+.transcript-item.active .transcript-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .btn-sub-copy-compact {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: none;
+  border: none;
   color: #8a8d98;
-  font-size: 11px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   cursor: pointer;
-  transition: all 0.15s ease;
-  width: 24px;
-  height: 24px;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1313,39 +1365,36 @@ video {
 }
 
 .btn-sub-copy-compact:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffca4a;
+  transform: scale(1.1);
 }
 
 .btn-sidebar-ai {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: none !important;
+  border: none !important;
   color: #8a8d98 !important;
 }
 
 .btn-sidebar-ai:hover {
-  background: rgba(255, 202, 74, 0.1) !important;
-  border-color: rgba(255, 202, 74, 0.2) !important;
-  color: #ffca4a !important;
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #a78bfa !important;
 }
 
 .btn-sub-copy-compact.copied {
   background: rgba(46, 196, 182, 0.1);
-  border-color: rgba(46, 196, 182, 0.2);
   color: #2ec4b6;
 }
 
 .btn-save-sentence-star {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: none;
+  border: none;
   color: #8a8d98;
-  font-size: 11px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   cursor: pointer;
-  transition: all 0.15s ease;
-  width: 24px;
-  height: 24px;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1353,14 +1402,13 @@ video {
 }
 
 .btn-save-sentence-star:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffca4a;
+  transform: scale(1.1);
 }
 
 .btn-save-sentence-star.saved {
   background: rgba(255, 202, 74, 0.1);
-  border-color: rgba(255, 202, 74, 0.2);
   color: #ffca4a;
 }
 
@@ -1649,13 +1697,14 @@ video {
 
 .popover-pos-badge {
   display: inline-block;
-  background: rgba(255, 202, 74, 0.15);
-  color: #ffca4a;
-  font-size: 10px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.25);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }
@@ -1920,5 +1969,77 @@ kbd {
   font-family: monospace;
   color: #fff;
   box-shadow: 0 2px 0 rgba(0,0,0,0.5);
+}
+
+.btn-srs-action {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-srs-action.srs-again {
+  background: rgba(255, 77, 79, 0.12);
+  color: #ff4d4f;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+}
+.btn-srs-action.srs-again:hover {
+  background: rgba(255, 77, 79, 0.2);
+  border-color: rgba(255, 77, 79, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-srs-action.srs-hard {
+  background: rgba(255, 159, 67, 0.12);
+  color: #ff9f43;
+  border: 1px solid rgba(255, 159, 67, 0.2);
+}
+.btn-srs-action.srs-hard:hover {
+  background: rgba(255, 159, 67, 0.2);
+  border-color: rgba(255, 159, 67, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-srs-action.srs-easy {
+  background: rgba(46, 213, 115, 0.12);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.2);
+}
+.btn-srs-action.srs-easy:hover {
+  background: rgba(46, 213, 115, 0.2);
+  border-color: rgba(46, 213, 115, 0.3);
+  transform: translateY(-1px);
+}
+
+.vocab-item .popover-pos-badge {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #a78bfa !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin: 0 !important;
+}
+
+.btn-audio-pronounce {
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 2px !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-audio-pronounce:hover {
+  color: #ffca4a !important;
+  transform: scale(1.15) !important;
 }
 
